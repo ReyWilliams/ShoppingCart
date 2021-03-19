@@ -6,11 +6,19 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 
 
 public class LoginFrame {
 
-    public LoginFrame(){
+    public LoginFrame(LoginData data){
+
+        //copy data object
+        this.data = data;
+
+        //get login data
+        loginMap = data.getLoginMap();
+
         loginFrame = new JFrame();
         loginPanel = new JPanel();
         loginFields = new JTextField[2];
@@ -59,12 +67,12 @@ public class LoginFrame {
         loginPanel.add(sellerLabel);
 
         //creating and positioning our username and password textfields
-        JTextField userNameField = new JTextField(15);
+        userNameField = new JTextField(15);
         userNameField.setBounds(300, 210,170,40);
         userNameField.setFont(new Font("Century Gothic", Font.ITALIC, 20));
         loginFields[0] = userNameField;
 
-        JPasswordField passWordField = new JPasswordField(15);
+        passWordField = new JPasswordField(15);
         passWordField.setBounds(300, 310,170,40);
         passWordField.setFont(new Font("Century Gothic", Font.ITALIC, 20));
         loginFields[1] = userNameField;
@@ -88,7 +96,7 @@ public class LoginFrame {
 
 
         //Login feedback label
-        JLabel feedbackLabel = new JLabel("LOGIN FAILED, try again");
+        feedbackLabel = new JLabel("LOGIN FAILED, try again");
         feedbackLabel.setFont(new Font("Century Gothic", Font.BOLD, 18));
         feedbackLabel.setBounds(315,575,200,50);
 
@@ -102,9 +110,14 @@ public class LoginFrame {
     }
 
     JTextField[] loginFields;
+    JTextField userNameField;
+    JPasswordField passWordField;
     JButton loginButton;
     JFrame loginFrame;
     JPanel loginPanel;
     JCheckBox sellerCheckBox;
+    JLabel feedbackLabel;
+    HashMap<String, String> loginMap;
+    LoginData data;
 
 }
