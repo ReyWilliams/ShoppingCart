@@ -22,6 +22,7 @@ public class LoginFrame {
         loginFrame = new JFrame();
         loginPanel = new JPanel();
         loginFields = new JTextField[2];
+        loginButtons = new JButton[2];
 
         //setup attributes for loginFrame JFrame
         loginFrame.setSize(875,687);
@@ -90,15 +91,16 @@ public class LoginFrame {
 
         //create and position our login button
         loginButton   = new JButton("Login");
+        loginButton.setFocusable(false);
         loginButton.setFont(new Font("Century Gothic", Font.BOLD, 20));
         loginButton.setBounds(400,500,100,50);
         loginPanel.add(loginButton);
 
 
         //Login feedback label
-        feedbackLabel = new JLabel("LOGIN FAILED, try again");
+        feedbackLabel = new JLabel("");
         feedbackLabel.setFont(new Font("Century Gothic", Font.BOLD, 18));
-        feedbackLabel.setBounds(315,575,200,50);
+        feedbackLabel.setBounds(390,575,200,50);
 
         loginPanel.add(feedbackLabel);
 
@@ -110,6 +112,7 @@ public class LoginFrame {
     }
 
     JTextField[] loginFields;
+    JButton[] loginButtons;
     JTextField userNameField;
     JPasswordField passWordField;
     JButton loginButton;
