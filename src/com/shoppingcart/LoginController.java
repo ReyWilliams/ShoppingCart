@@ -10,11 +10,13 @@ public class LoginController {
         this.frame = frame;
         this.data = data;
 
-        this.frame.loginButton.addActionListener(new LoginButtonListener());
+        this.frame.loginButton.addActionListener(new LoginListener());
+        this.frame.userNameField.addActionListener(new LoginListener());
+        this.frame.passWordField.addActionListener(new LoginListener());
 
     }
 
-    class LoginButtonListener implements ActionListener{
+    class LoginListener implements ActionListener{
 
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -36,7 +38,8 @@ public class LoginController {
                     if(frame.sellerCheckBox.isSelected()){
                         SellerFrame sellerFrame = new SellerFrame();
                     }else{
-                        ProductFrame productFrame = new ProductFrame();
+                        ProductModel model = new ProductModel();
+                        ProductFrame productFrame = new ProductFrame(model);
                     }
                 }else{ //if that is not the correct password
                     frame.feedbackLabel.setForeground(Color.RED);
