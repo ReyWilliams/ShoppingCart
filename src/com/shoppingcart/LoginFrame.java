@@ -70,12 +70,12 @@ public class LoginFrame {
         //creating and positioning our username and password textfields
         userNameField = new JTextField(15);
         userNameField.setBounds(300, 210,170,40);
-        userNameField.setFont(new Font("Century Gothic", Font.ITALIC, 20));
+        userNameField.setFont(new Font("Century Gothic", Font.PLAIN, 20));
         loginFields[0] = userNameField;
 
         passWordField = new JPasswordField(15);
         passWordField.setBounds(300, 310,170,40);
-        passWordField.setFont(new Font("Century Gothic", Font.ITALIC, 20));
+        passWordField.setFont(new Font("Century Gothic", Font.PLAIN, 20));
         loginFields[1] = userNameField;
 
         loginPanel.add(userNameField);

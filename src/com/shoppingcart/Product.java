@@ -8,6 +8,7 @@ public class Product {
         this.type = type;
         this.basePrice = basePrice;
         this.sellPrice = sellPrice;
+        this.quantity = quantity;
     }
 
     //setter functions

@@ -39,7 +39,7 @@ public class LoginController {
                         SellerFrame sellerFrame = new SellerFrame();
                     }else{
                         ProductModel model = new ProductModel();
-                        ProductFrame productFrame = new ProductFrame(model);
+                        ProductFrame productFrame = new ProductFrame(model, userName);
                     }
                 }else{ //if that is not the correct password
                     frame.feedbackLabel.setForeground(Color.RED);

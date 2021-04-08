@@ -34,6 +34,12 @@ public class ProductModel {
         return Products;
     }
 
+    ArrayList<Product> getProductsClone(){
+        //returning the object itself because we want to allow changes
+        return (ArrayList<Product>) Products.clone();
+    }
+
+
     Scanner in;
     ArrayList<Product> Products;
 }

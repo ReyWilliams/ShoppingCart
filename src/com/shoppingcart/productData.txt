@@ -1,5 +1,5 @@
 Product Name|ProductID|Product Type|Base Price|Selling Price
 Hand Sanitizer|1E3|Health|5.00|7.00|35
-Banana|4E1|Food|2.34|3.47|17
+Toilet Paper|4E1|Food|2.34|3.47|17
 Television|TV3|Electronics|549.00|674.53|23
 Water|W4T|Food|4.00|5.20|15
