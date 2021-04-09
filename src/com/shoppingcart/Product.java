@@ -1,6 +1,8 @@
 package com.shoppingcart;
 
-public class Product {
+import java.io.Serializable;
+
+public class Product implements Serializable {
 
     public Product(String name, String ID, String type, double basePrice, double sellPrice, int quantity) {
         this.name = name;
