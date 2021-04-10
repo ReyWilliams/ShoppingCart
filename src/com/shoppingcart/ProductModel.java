@@ -25,7 +25,7 @@ public class ProductModel {
             if(values[0].equals("Product Name")) continue;
 
             //create new products from values
-            Products.add(new Product(values[0], values[1], values[2], Double.parseDouble(values[3]), Double.parseDouble(values[4]), Integer.parseInt(values[5]) ));
+            Products.add(new Product(values[0], values[1], values[2], Double.parseDouble(values[3]), Double.parseDouble(values[4]), Integer.parseInt(values[5]), Integer.parseInt(values[6]) ));
         }
     }
 
@@ -35,8 +35,16 @@ public class ProductModel {
     }
 
     ArrayList<Product> getProductsClone(){
-        //returning the object itself because we want to allow changes
-        return (ArrayList<Product>) Products.clone();
+        ArrayList<Product> clone = new ArrayList<Product>();
+        for(Product p : Products) {
+            try {
+                clone.add(p.clone());
+            } catch (CloneNotSupportedException e) {
+                e.printStackTrace();
+            }
+        }
+        //not returning the object itself because we want to allow changes
+        return clone;
     }
 
 

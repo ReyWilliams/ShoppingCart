@@ -1,25 +1,45 @@
 package com.shoppingcart;
 
+
+
+import jdk.swing.interop.SwingInterOpUtils;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 
 public class ProductFrame {
 
-    public ProductFrame(ProductModel model, String userName){
+    public ProductFrame(ProductModel model, String userName, PurchaseModel pmodel){
 
         //get username
         this.userName = userName;
 
         //initialize arraylist
         Products = model.getProducts();
+
+
+        //set up sounds
+        URL soundbyte = null;
+        try {
+            soundbyte = new File("ka-ching.wav").toURI().toURL();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        clip = java.applet.Applet.newAudioClip(soundbyte);
+
+
 
         //deserialize objects
         File tmpDir = new File("User(" + userName + ").dat");
@@ -33,6 +53,8 @@ public class ProductFrame {
 
                 ProductsClone = (ArrayList<Product>) in.readObject();
                 userQuantity = (ArrayList<Integer>) in.readObject();
+                cartTotalVal = in.readDouble();
+
                 in.close();
 
                 System.out.println("User " + userName + " deserialized");
@@ -43,12 +65,36 @@ public class ProductFrame {
         }else{ //choose default values
             ProductsClone = model.getProductsClone();
             userQuantity = new ArrayList<>(Arrays.asList(0,0,0,0));
+            cartTotalVal = 0;
         }
+
+        tmpDir = new File("purchases.dat");
+        exists = tmpDir.exists();
+
+        if(exists) { //purchases has file
+            try { //try to deserialize
+
+                ObjectInputStream in = new ObjectInputStream(
+                        new FileInputStream("purchases.dat"));
+
+                purchaseList = (ArrayList<Purchase>) in.readObject();
+
+                in.close();
+
+                System.out.println("Purchases deserialized by product frame.");
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }else{ //choose default values
+            purchaseList = pmodel.getPurchases();
+        }
+
+
 
         //setup product frame w/ parameters
         productFrame = new JFrame();
 
-        productFrame.setSize(587,725);
+        productFrame.setSize(587,775);
         productFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         productFrame.setLayout(new BorderLayout(20,20));
         productFrame.setTitle("Welcome, " + userName);
@@ -64,13 +110,16 @@ public class ProductFrame {
         //setup top panel which will hold the buttons users will uses to switch between views and logout
         productTopPanel = new JPanel(new FlowLayout());
         checkoutButton = new JButton("Checkout Items");
+        checkoutButton.setBackground(new Color(169,169,169));
         checkoutButton.addActionListener(e -> showCheckOutPage());
         checkoutButton.setFocusable(false);
         productsButton = new JButton("View Products");
         productsButton.setFocusable(false);
+        productsButton.setBackground(new Color(169,169,169));
         productsButton.addActionListener(e -> showProductsPage());
         logoutButton = new JButton("Logout");
         logoutButton.setFocusable(false);
+        logoutButton.setBackground(new Color(169,169,169));
         logoutButton.addActionListener(e -> logOut());
 
         //add the bottoms to the top panel
@@ -88,6 +137,7 @@ public class ProductFrame {
         //add the products to the general products panel at the center
         generalProductsPanel.add(productsViewPanel,BorderLayout.CENTER);
 
+
         //add text saying user's name as top
         JPanel productTopPanel = new JPanel(new FlowLayout());
         JLabel welcomeUser = new JLabel("Welcome " + userName +"!");
@@ -97,21 +147,32 @@ public class ProductFrame {
         productTopPanel.add(welcomeUser);
         generalProductsPanel.add(productTopPanel,BorderLayout.NORTH);
 
-        //add spacers to the left and right
+        //add spacers to the left and right and south
         generalProductsPanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.EAST);
         generalProductsPanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.WEST);
+        generalProductsPanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.SOUTH);
 
         setUpProductsView(productsViewPanel);
-        productsViewPanel.add(new JLabel("Testing"));
 
         //checkout Panel
         JPanel generalCheckOutPanel = new JPanel(new BorderLayout(50,50));
 
-        //confirm button
+        //confirm button and cart total label
         JPanel checkOutTopPanel = new JPanel(new FlowLayout());
+
+        cartTotalLabel = new JLabel();
+        cartTotalLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        cartTotalLabel.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        cartTotalLabel.setForeground(Color.BLACK);
+        cartTotalLabel.setText("Total: " + formatter.format(cartTotalVal));
+
         confirmCheckOutButton = new JButton("Confirm Checkout");
+        confirmCheckOutButton.setBackground(new Color(169,169,169));
         confirmCheckOutButton.setFocusable(false);
+        confirmCheckOutButton.addActionListener(e->showPurchasePage());
+
         checkOutTopPanel.add(confirmCheckOutButton);
+        checkOutTopPanel.add(cartTotalLabel);
         generalCheckOutPanel.add(checkOutTopPanel, BorderLayout.NORTH);
 
 
@@ -122,28 +183,156 @@ public class ProductFrame {
 
 
         //spacers
-        //add spacers to the left and right
+        //add spacers to the left and right and south
         generalCheckOutPanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.EAST);
         generalCheckOutPanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.WEST);
-
+        generalCheckOutPanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.SOUTH);
 
         generalCheckOutPanel.add(checkOutProductsViewPanel, BorderLayout.CENTER);
+
+
 
         //setup products
         setUpCheckOutProductsView(checkOutProductsViewPanel);
 
-        checkOutProductsViewPanel.add(new JLabel("testing"));
+
+        generalPurchasePanel = new JPanel();
+        generalPurchasePanel.setLayout(null);
+        generalPurchasePanel.setVisible(true);
+
+        JLabel userNameLabel = new JLabel("Full Name: ");
+        userNameLabel.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        userNameLabel.setForeground(Color.BLACK);
+        userNameLabel.setBounds(20,20,userNameLabel.getPreferredSize().width, userNameLabel.getPreferredSize().height);
+        generalPurchasePanel.add(userNameLabel);
+
+
+        tempHeight = userNameLabel.getPreferredSize().height;
+
+        JLabel userNumberLabel = new JLabel("Number: ");
+        userNumberLabel.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        userNumberLabel.setForeground(Color.BLACK);
+        userNumberLabel.setBounds(20,40 + tempHeight*1,userNameLabel.getPreferredSize().width, userNameLabel.getPreferredSize().height);
+        generalPurchasePanel.add(userNumberLabel);
+
+
+        JLabel addressLabel = new JLabel("Address: ");
+        addressLabel.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        addressLabel.setForeground(Color.BLACK);
+        addressLabel.setBounds(20,60 + tempHeight*2,userNameLabel.getPreferredSize().width, userNameLabel.getPreferredSize().height);
+        generalPurchasePanel.add(addressLabel);
+
+        JLabel CCLabel = new JLabel("CC Number: ");
+        CCLabel.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        CCLabel.setForeground(Color.BLACK);
+        CCLabel.setBounds(20,80 + tempHeight*3,CCLabel.getPreferredSize().width, userNameLabel.getPreferredSize().height);
+        generalPurchasePanel.add(CCLabel);
+
+        JLabel CCExp = new JLabel("CC Exp (MM/YY): ");
+        CCExp.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        CCExp.setForeground(Color.BLACK);
+        CCExp.setBounds(20,100 + tempHeight*4,CCExp.getPreferredSize().width, userNameLabel.getPreferredSize().height);
+        generalPurchasePanel.add(CCExp);
+
+        JLabel CCCSV = new JLabel("CC CCV Number: ");
+        CCCSV.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        CCCSV.setForeground(Color.BLACK);
+        CCCSV.setBounds(20,120 + tempHeight*5,CCCSV.getPreferredSize().width, CCCSV.getPreferredSize().height);
+        generalPurchasePanel.add(CCCSV);
+
+        purchaseTotal = new JLabel("Purchase Total: " + cartTotalVal);
+        purchaseTotal.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        purchaseTotal.setForeground(Color.BLACK);
+        purchaseTotal.setBounds(170,140 + tempHeight*6,purchaseTotal.getPreferredSize().width , purchaseTotal.getPreferredSize().height);
+        generalPurchasePanel.add(purchaseTotal);
+
+        //set up text entry fields
+        userNameEntry = new JTextField(20);
+        userNameEntry.setBounds(200,20,userNameEntry.getPreferredSize().width, userNameEntry.getPreferredSize().height);
+        userNameEntry.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        userNameEntry.setBackground(new Color(169,169,169));
+        generalPurchasePanel.add(userNameEntry);
+
+        userNumber = new JTextField(20);
+        userNumber.setBounds(200,40 + tempHeight,userNumber.getPreferredSize().width, userNumber.getPreferredSize().height);
+        userNumber.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        userNumber.setBackground(new Color(169,169,169));
+        generalPurchasePanel.add(userNumber);
+
+        userAddress = new JTextField(20);
+        userAddress.setBounds(200,60 + 2*tempHeight,userAddress.getPreferredSize().width, userAddress.getPreferredSize().height);
+        userAddress.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        userAddress.setBackground(new Color(169,169,169));
+        generalPurchasePanel.add(userAddress);
+
+        CCNumber = new JTextField(20);
+        CCNumber.setBounds(200,80 + 3*tempHeight,CCNumber.getPreferredSize().width, CCNumber.getPreferredSize().height);
+        CCNumber.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        CCNumber.setBackground(new Color(169,169,169));
+        generalPurchasePanel.add(CCNumber);
+
+        CCExpiration = new JTextField(20);
+        CCExpiration.setBounds(200,100 + 4*tempHeight,CCExpiration.getPreferredSize().width, CCExpiration.getPreferredSize().height);
+        CCExpiration.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        CCExpiration.setBackground(new Color(169,169,169));
+        generalPurchasePanel.add(CCExpiration);
+
+        CCV = new JTextField(20);
+        CCV.setBounds(200,120 + 5*tempHeight,CCV.getPreferredSize().width, CCV.getPreferredSize().height);
+        CCV.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        CCV.setBackground(new Color(169,169,169));
+        generalPurchasePanel.add(CCV);
+
+        checkOutFields = new JTextField[]{userNameEntry, userAddress,CCNumber,CCV,CCExpiration,userNumber};
+
+        submitButton = new JButton("Submit");
+        submitButton.addActionListener(e->checkPurchaseSubmission());
+        submitButton.setFocusable(false);
+        submitButton.setBounds(200,180 + tempHeight*7,purchaseTotal.getPreferredSize().width , purchaseTotal.getPreferredSize().height);
+        submitButton.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        submitButton.setBackground(new Color(169,169,169));
+        generalPurchasePanel.add(submitButton);
+
+
+
+
+
+
 
 
 
         //set up switch panel
         switchPanel.add(productsPage, generalProductsPanel);
         switchPanel.add(checkOutPage, generalCheckOutPanel);
+
+        switchPanel.add(purchasePage, generalPurchasePanel);
         showProductsPage();
 
         //finalize frame
         productFrame.add(switchPanel);
         productFrame.setVisible(true);
+    }
+
+    void showPurchasePage(){
+
+        //update purchase total text.
+        purchaseTotal.setText("Purchase Total: " + formatter.format(cartTotalVal));
+        purchaseTotal.setBackground(new Color(169,169,169));
+        purchaseTotal.setOpaque(true);
+        purchaseTotal.setBounds(170,140 + tempHeight*6,purchaseTotal.getPreferredSize().width , purchaseTotal.getPreferredSize().height);
+
+        //if cart total is 0, then user cannot check out so turn total to red
+        if(cartTotalVal == 0){
+            cartTotalLabel.setForeground(new Color(255, 114,111));
+            cartTotalLabel.setFont(new Font("Century Gothic", Font.BOLD, 18));
+            return;
+        }
+
+        //switch Panel
+        productFrame.setSize(587,525);
+        cardLayout.show(switchPanel, purchasePage);
+        isOnProductsPage = false;
+
     }
 
     void setUpProductsView(JPanel productsViewPanel){
@@ -194,6 +383,7 @@ public class ProductFrame {
         handSanitizerPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
         buyHandSanitizer = new JButton("ADD TO CART");
+        buyHandSanitizer.setBackground(new Color(169,169,200));
         buyHandSanitizer.setAlignmentX(Component.CENTER_ALIGNMENT);
         buyHandSanitizer.setFont(new Font("Century Gothic", Font.BOLD, 12));
         buyHandSanitizer.addActionListener(this::showPurchase);
@@ -247,6 +437,7 @@ public class ProductFrame {
         maskPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
         buyMask = new JButton("ADD TO CART");
+        buyMask.setBackground(new Color(169,169,200));
         buyMask.setAlignmentX(Component.CENTER_ALIGNMENT);
         buyMask.setFont(new Font("Century Gothic", Font.BOLD, 12));
         buyMask.addActionListener(this::showPurchase);
@@ -300,6 +491,7 @@ public class ProductFrame {
         toothPastePanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
         buytoothPaste = new JButton("ADD TO CART");
+        buytoothPaste.setBackground(new Color(169,169,200));
         buytoothPaste.setAlignmentX(Component.CENTER_ALIGNMENT);
         buytoothPaste.setFont(new Font("Century Gothic", Font.BOLD, 12));
         buytoothPaste.addActionListener(this::showPurchase);
@@ -307,6 +499,59 @@ public class ProductFrame {
 
         productsViewPanel.add(toothPastePanel);
 
+        //set up the medication panel
+        medicationPanel = new JPanel();
+
+        medicationPanel.setBackground(new Color(169,169,169));
+        medicationPanel.setLayout( new BoxLayout(medicationPanel,BoxLayout.Y_AXIS));
+        medicationPanel.setSize(25,25);
+
+        //spacer
+        medicationPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        //image setup
+        BufferedImage medicationIcon = null;
+        try {
+            medicationIcon = ImageIO.read(new File("./medicationIcon.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assert medicationIcon != null;
+        JLabel medicationIconLabel = new JLabel(new ImageIcon(medicationIcon));
+        medicationIconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationPanel.add(medicationIconLabel);
+
+        //set up name, price and quantity labels
+        medicationName = new JLabel(Products.get(3).getName());
+        medicationName.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        medicationName.setForeground(new Color(0,255,127));
+        medicationName.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationPanel.add(medicationName);
+
+        medicationPrice = new JLabel("Price: " + formatter.format(Products.get(3).getSellPrice()));
+        medicationPrice.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationPrice.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        medicationPrice.setForeground(Color.WHITE);
+        medicationPanel.add(medicationPrice);
+
+        medicationQuantity = new JLabel("Quantity: " + ProductsClone.get(3).getQuantity());
+        medicationQuantity.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationQuantity.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        medicationQuantity.setForeground(Color.white);
+        medicationPanel.add(medicationQuantity);
+
+        //spacer
+        medicationPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        buyMedication = new JButton("ADD TO CART");
+        buyMedication.setBackground(new Color(169,169,200));
+        buyMedication.setAlignmentX(Component.CENTER_ALIGNMENT);
+        buyMedication.setFont(new Font("Century Gothic", Font.BOLD, 12));
+        buyMedication.addActionListener(this::showPurchase);
+        medicationPanel.add(buyMedication);
+
+        productsViewPanel.add(medicationPanel);
     }
 
     void setUpCheckOutProductsView(JPanel checkOutProductsViewPanel){
@@ -360,7 +605,7 @@ public class ProductFrame {
         handSanitizerPanelCO.add(handSanitizerTotal);
 
         //spacer
-        handSanitizerPanelCO.add(Box.createRigidArea(new Dimension(0, 30)));
+        handSanitizerPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
 
         //increment and decrement buttons
         JPanel handSanitizerIncAndDecCO = new JPanel(new FlowLayout());
@@ -385,7 +630,9 @@ public class ProductFrame {
         handSanitizerPanelCO.add(handSanitizerIncAndDecCO);
 
         //if user has item in their cart make it visible when they login
-        handSanitizerPanelCO.setVisible(userQuantity.get(0) > 0);
+//        handSanitizerPanelCO.setVisible(userQuantity.get(0) > 0);
+
+        if(userQuantity.get(0) > 0)
         checkOutProductsViewPanel.add(handSanitizerPanelCO);
 
         //set up the mask CO panel
@@ -437,7 +684,7 @@ public class ProductFrame {
         maskPanelCO.add(maskTotal);
 
         //spacer
-        maskPanelCO.add(Box.createRigidArea(new Dimension(0, 30)));
+        maskPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
 
         //increment and decrement buttons
         JPanel maskIncAndDecCO = new JPanel(new FlowLayout());
@@ -462,8 +709,9 @@ public class ProductFrame {
         maskPanelCO.add(maskIncAndDecCO);
 
         //if user has item in their cart make it visible when they login
-        maskPanelCO.setVisible(userQuantity.get(1) > 0);
+//        maskPanelCO.setVisible(userQuantity.get(1) > 0);
 
+        if(userQuantity.get(1) > 0)
         checkOutProductsViewPanel.add(maskPanelCO);
 
         //set up the toothPaste CO panel
@@ -515,7 +763,7 @@ public class ProductFrame {
         toothPastePanelCO.add(toothPasteTotal);
 
         //spacer
-        toothPastePanelCO.add(Box.createRigidArea(new Dimension(0, 30)));
+        toothPastePanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
 
         //increment and decrement buttons
         JPanel toothPasteIncAndDecCO = new JPanel(new FlowLayout());
@@ -540,16 +788,98 @@ public class ProductFrame {
         toothPastePanelCO.add(toothPasteIncAndDecCO);
 
         //if user has item in their cart make it visible when they login
-        toothPastePanelCO.setVisible(userQuantity.get(2) > 0);
+        //toothPastePanelCO.setVisible(userQuantity.get(2) > 0);
 
+        if(userQuantity.get(2) > 0)
         checkOutProductsViewPanel.add(toothPastePanelCO);
+
+        //set up the medication CO panel
+        medicationPanelCO = new JPanel();
+
+        medicationPanelCO.setBackground(new Color(169,169,169));
+        medicationPanelCO.setLayout( new BoxLayout(medicationPanelCO,BoxLayout.Y_AXIS));
+        medicationPanelCO.setSize(25,25);
+
+        //spacer
+        medicationPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        //image setup
+        BufferedImage medicationIcon = null;
+        try {
+            medicationIcon = ImageIO.read(new File("./medicationIcon.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assert medicationIcon != null;
+        JLabel medicationIconLabelCO = new JLabel(new ImageIcon(medicationIcon));
+        medicationIconLabelCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationPanelCO.add(medicationIconLabelCO);
+
+        //set up name, price and quantity labels
+        JLabel medicationNameCO = new JLabel(Products.get(3).getName());
+        medicationNameCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        medicationNameCO.setForeground(Color.black);
+        medicationNameCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationPanelCO.add(medicationNameCO);
+
+        JLabel medicationPriceCO = new JLabel("Price: " + formatter.format(Products.get(3).getSellPrice()));
+        medicationPriceCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationPriceCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        medicationPriceCO.setForeground(Color.WHITE);
+        medicationPanelCO.add(medicationPriceCO);
+
+        medicationQuantityCO = new JLabel("Cart Quantity: " + userQuantity.get(3));
+        medicationQuantityCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationQuantityCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        medicationQuantityCO.setForeground(Color.white);
+        medicationPanelCO.add(medicationQuantityCO);
+
+        medicationTotal = new JLabel("Item Total: " + formatter.format(Products.get(3).getSellPrice() * userQuantity.get(3)));
+        medicationTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationTotal.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        medicationTotal.setForeground(Color.WHITE);
+        medicationPanelCO.add(medicationTotal);
+
+        //spacer
+        medicationPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        //increment and decrement buttons
+        JPanel medicationIncAndDecCO = new JPanel(new FlowLayout());
+        medicationIncAndDecCO.setBackground(new Color(169,169,169));
+        medicationIncAndDecCO.setSize(10,10);
+        addMedicationCO = new JButton("+");
+        addMedicationCO.setBackground(new Color(147,219,170));
+        addMedicationCO.setFocusable(false);
+        addMedicationCO.addActionListener(this::updateCart);
+        addMedicationCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        addMedicationCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        medicationIncAndDecCO.add(addMedicationCO);
+
+        removeMedicationCO = new JButton("-");
+        removeMedicationCO.setBackground(new Color(255, 114,111));
+        removeMedicationCO.setFocusable(false);
+        removeMedicationCO.addActionListener(this::updateCart);
+        removeMedicationCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        removeMedicationCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        medicationIncAndDecCO.add(removeMedicationCO);
+
+        medicationPanelCO.add(medicationIncAndDecCO);
+
+        //if user has item in their cart make it visible when they login
+//        medicationPanelCO.setVisible(userQuantity.get(3) > 0);
+
+        if(userQuantity.get(3) > 0)
+        checkOutProductsViewPanel.add(medicationPanelCO);
     }
-
-
 
     void showPurchase(ActionEvent evt){
 
-        //check validity for hand sanitizer
+
+        //set total label to black
+        cartTotalLabel.setForeground(Color.black);
+        cartTotalLabel.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+
         if(evt.getSource() == buyHandSanitizer) {
             if (ProductsClone.get(0).getQuantity() == 0) { //if there is no more to add to cart
                 handSanitizerName.setForeground(new Color(255, 11, 127));
@@ -558,7 +888,12 @@ public class ProductFrame {
                 handSanitizerName.setForeground(new Color(255, 11, 127));
             }
 
-            handSanitizerPanelCO.setVisible(true);
+//            handSanitizerPanelCO.setVisible(true);
+
+            if(userQuantity.get(0) == 0){
+                checkOutProductsViewPanel.add(handSanitizerPanelCO);
+            }
+
             userQuantity.set(0, userQuantity.get(0) + 1);
             handSanitizerQuantityCO.setText("Cart Quantity: " + userQuantity.get(0));
 
@@ -574,7 +909,11 @@ public class ProductFrame {
                 maskName.setForeground(new Color(255, 11, 127));
             }
 
-            maskPanelCO.setVisible(true);
+//            maskPanelCO.setVisible(true);
+            if(userQuantity.get(1) == 0){
+                checkOutProductsViewPanel.add(maskPanelCO);
+            }
+
             userQuantity.set(1, userQuantity.get(1) + 1);
             maskQuantityCO.setText("Cart Quantity: " + userQuantity.get(1));
 
@@ -590,7 +929,11 @@ public class ProductFrame {
                 toothPasteName.setForeground(new Color(255, 11, 127));
             }
 
-            toothPastePanelCO.setVisible(true);
+//            toothPastePanelCO.setVisible(true);
+            if(userQuantity.get(2) == 0){
+                checkOutProductsViewPanel.add(toothPastePanelCO);
+            }
+
             userQuantity.set(2, userQuantity.get(2) + 1);
             toothPasteQuantityCO.setText("Cart Quantity: " + userQuantity.get(2));
 
@@ -598,7 +941,30 @@ public class ProductFrame {
             toothPasteQuantity.setText("Quantity: " + (ProductsClone.get(2).getQuantity()));
 
             toothPasteTotal.setText("Total: " + formatter.format(Products.get(2).getSellPrice() * userQuantity.get(2)));
+        }else if(evt.getSource() == buyMedication){
+            if (ProductsClone.get(3).getQuantity() == 0) { //if there is no more to add to cart
+                medicationName.setForeground(new Color(255, 11, 127));
+                return;
+            } else if (ProductsClone.get(3).getQuantity() == 1) {
+                medicationName.setForeground(new Color(255, 11, 127));
+            }
+
+//            medicationPanelCO.setVisible(true);
+
+            if(userQuantity.get(3) == 0){
+                checkOutProductsViewPanel.add(medicationPanelCO);
+            }
+
+            userQuantity.set(3, userQuantity.get(3) + 1);
+            medicationQuantityCO.setText("Cart Quantity: " + userQuantity.get(3));
+
+            ProductsClone.get(3).setQuantity(ProductsClone.get(3).getQuantity() - 1);
+            medicationQuantity.setText("Quantity: " + (ProductsClone.get(3).getQuantity()));
+
+            medicationTotal.setText("Total: " + formatter.format(Products.get(3).getSellPrice() * userQuantity.get(3)));
         }
+
+        updateTotal();
     }
 
     void updateCart(ActionEvent evt){
@@ -615,62 +981,197 @@ public class ProductFrame {
             return;
         }else if(userQuantity.get(2) >= Products.get(2).getQuantity() && evt.getSource() == addtoothPasteCO){
             return;
+        }else if(userQuantity.get(3) == 0 && evt.getSource() == removeMedicationCO){
+            return;
+        }else if(userQuantity.get(3) >= Products.get(3).getQuantity() && evt.getSource() == addMedicationCO){
+            return;
         }
 
         if(evt.getSource() == addHandSanitizerCO) {
+
+            if(ProductsClone.get(0).getQuantity() == 1){
+                handSanitizerName.setForeground(new Color(255, 11, 127));
+            }
             userQuantity.set(0,userQuantity.get(0) + 1);
             handSanitizerQuantityCO.setText("Cart Quantity: " + userQuantity.get(0));
 
             ProductsClone.get(0).setQuantity(ProductsClone.get(0).getQuantity() - 1);
             handSanitizerQuantity.setText("Quantity: " + (ProductsClone.get(0).getQuantity()));
         }else if(evt.getSource() == removeHandSanitizerCO){
+
+            if(userQuantity.get(0) == 1){
+                checkOutProductsViewPanel.remove(handSanitizerPanelCO);
+                checkOutProductsViewPanel.repaint();
+
+                if(checkOutProductsViewPanel.getComponentCount() == 0){
+                    showProductsPage();
+                }
+            }
+
             handSanitizerName.setForeground(new Color(0,255,127));
             userQuantity.set(0,userQuantity.get(0) - 1);
             handSanitizerQuantityCO.setText("Cart Quantity: " + userQuantity.get(0));
             ProductsClone.get(0).setQuantity(ProductsClone.get(0).getQuantity() + 1);
             handSanitizerQuantity.setText("Quantity: " + (ProductsClone.get(0).getQuantity()));
         }else if(evt.getSource() == addMaskCO) {
+
+            if(ProductsClone.get(1).getQuantity() == 1){
+                maskName.setForeground(new Color(255, 11, 127));
+            }
+
             userQuantity.set(1,userQuantity.get(1) + 1);
             maskQuantityCO.setText("Cart Quantity: " + userQuantity.get(1));
 
             ProductsClone.get(1).setQuantity(ProductsClone.get(1).getQuantity() - 1);
             maskQuantity.setText("Quantity: " + (ProductsClone.get(1).getQuantity()));
         }else if(evt.getSource() == removeMaskCO){
+
+            if(userQuantity.get(1) == 1){
+                checkOutProductsViewPanel.remove(maskPanelCO);
+                checkOutProductsViewPanel.repaint();
+
+                if(checkOutProductsViewPanel.getComponentCount() == 0){
+                    showProductsPage();
+                }
+            }
+
             maskName.setForeground(new Color(0,255,127));
             userQuantity.set(1,userQuantity.get(1) - 1);
             maskQuantityCO.setText("Cart Quantity: " + userQuantity.get(1));
             ProductsClone.get(1).setQuantity(ProductsClone.get(1).getQuantity() + 1);
             maskQuantity.setText("Quantity: " + (ProductsClone.get(1).getQuantity()));
         }else if(evt.getSource() == addtoothPasteCO) {
+
+            if(ProductsClone.get(2).getQuantity() == 1){
+                toothPasteName.setForeground(new Color(255, 11, 127));
+            }
+
             userQuantity.set(2,userQuantity.get(2) + 1);
             toothPasteQuantityCO.setText("Cart Quantity: " + userQuantity.get(2));
 
             ProductsClone.get(2).setQuantity(ProductsClone.get(2).getQuantity() - 1);
             toothPasteQuantity.setText("Quantity: " + (ProductsClone.get(2).getQuantity()));
         }else if(evt.getSource() == removetoothPasteCO){
+
+            if(userQuantity.get(2) == 1){
+                checkOutProductsViewPanel.remove(toothPastePanelCO);
+                checkOutProductsViewPanel.repaint();
+
+                if(checkOutProductsViewPanel.getComponentCount() == 0){
+                    showProductsPage();
+                }
+            }
+
             toothPasteName.setForeground(new Color(0,255,127));
             userQuantity.set(2,userQuantity.get(2) - 1);
             toothPasteQuantityCO.setText("Cart Quantity: " + userQuantity.get(2));
             ProductsClone.get(2).setQuantity(ProductsClone.get(2).getQuantity() + 1);
             toothPasteQuantity.setText("Quantity: " + (ProductsClone.get(2).getQuantity()));
+        }else if(evt.getSource() == addMedicationCO) {
+
+            if(ProductsClone.get(3).getQuantity() == 1){
+                medicationName.setForeground(new Color(255, 11, 127));
+            }
+
+            userQuantity.set(3,userQuantity.get(3) + 1);
+            medicationQuantityCO.setText("Cart Quantity: " + userQuantity.get(3));
+
+            ProductsClone.get(3).setQuantity(ProductsClone.get(3).getQuantity() - 1);
+            medicationQuantity.setText("Quantity: " + (ProductsClone.get(3).getQuantity()));
+        }else if(evt.getSource() == removeMedicationCO){
+
+            if(userQuantity.get(3) == 1){
+                checkOutProductsViewPanel.remove(medicationPanelCO);
+                checkOutProductsViewPanel.repaint();
+
+                if(checkOutProductsViewPanel.getComponentCount() == 0){
+                    showProductsPage();
+                }
+            }
+
+            medicationName.setForeground(new Color(0,255,127));
+            userQuantity.set(3,userQuantity.get(3) - 1);
+            medicationQuantityCO.setText("Cart Quantity: " + userQuantity.get(3));
+            ProductsClone.get(3).setQuantity(ProductsClone.get(3).getQuantity() + 1);
+            medicationQuantity.setText("Quantity: " + (ProductsClone.get(3).getQuantity()));
         }
+
 
         handSanitizerTotal.setText("Total: " + formatter.format(Products.get(0).getSellPrice() * userQuantity.get(0)));
         maskTotal.setText("Total: " + formatter.format(Products.get(1).getSellPrice() * userQuantity.get(1)));
         toothPasteTotal.setText("Total: " + formatter.format(Products.get(2).getSellPrice() * userQuantity.get(2)));
+        medicationTotal.setText("Total: " + formatter.format(Products.get(3).getSellPrice() * userQuantity.get(3)));
+
+        updateTotal();
     }
 
+    void updateTotal(){
 
+        cartTotalLabel.setForeground(Color.black);
+        cartTotalLabel.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+
+        int i = 0;
+        cartTotalVal = 0;
+        for(int val: userQuantity){
+            cartTotalVal += (val*Products.get(i++).getSellPrice());
+        }
+
+
+        cartTotalLabel.setText("Total: " + formatter.format(cartTotalVal));
+    }
 
     void showProductsPage(){
+        productFrame.setSize(587,775);
         cardLayout.show(switchPanel, productsPage);
         isOnProductsPage = true;
     }
 
     void showCheckOutPage(){
+        productFrame.setSize(587,775);
         cardLayout.show(switchPanel, checkOutPage);
         isOnProductsPage = false;
     }
+
+    void checkPurchaseSubmission(){
+        boolean valid = true;
+        //check for empty fields
+        for(JTextField n: checkOutFields) {
+
+            if (n.getText().length() == 0) {
+                n.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+                valid = false; //not valid as something is empty
+            } else {
+                n.setBorder(new LineBorder(Color.BLACK, 0));
+            }
+        }
+            if(!valid){ //if not valid exit function
+                return;
+            }
+
+            //if valid go ahead
+            HashMap<Product, Integer> userPurchases = new HashMap<>();
+            int i = 0;
+            for(int val: userQuantity){ //for every value in the list of user quantities
+                if(val != 0){ //if value is not 0 (they bought the product)
+                    userPurchases.put(Products.get(i), val); //add product and amount to purchases.
+                }
+
+                i++;
+            }
+            purchaseList.add(new Purchase(userNameEntry.getText(),cartTotalVal, userPurchases));
+
+            clip.play();
+
+            JLabel success = new JLabel("Purchase Successful");
+            success.setBounds(200,200 + tempHeight*8,success.getPreferredSize().width , success.getPreferredSize().height);
+            success.setFont(new Font("Century Gothic", Font.PLAIN, 30));
+            success.setBackground(new Color(169,169,169));
+            success.setBackground(new Color(147,219,170));
+            generalPurchasePanel.add(success);
+
+            logOut();
+
+        }
 
     void logOut(){
         productFrame.dispose();
@@ -681,6 +1182,7 @@ public class ProductFrame {
 
             out.writeObject(ProductsClone);
             out.writeObject(userQuantity);
+            out.writeDouble(cartTotalVal);
 
             out.close();
 
@@ -690,6 +1192,21 @@ public class ProductFrame {
             e.printStackTrace();
         }
 
+        try {
+            ObjectOutputStream out = new ObjectOutputStream(
+                    new FileOutputStream("purchases.dat"));
+
+            out.writeObject(purchaseList);
+
+            out.close();
+
+            System.out.println("Purchases serialized by product frame.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+
         LoginData data = new LoginData();
         LoginFrame frame = new LoginFrame(data);
         LoginController controller = new LoginController(data, frame);
@@ -697,6 +1214,7 @@ public class ProductFrame {
 
     ArrayList<Product> Products, ProductsClone;
     NumberFormat formatter = NumberFormat.getCurrencyInstance();
+    java.applet.AudioClip clip;
     JFrame productFrame;
     JPanel productTopPanel;
     JPanel generalProductsPanel;
@@ -707,8 +1225,10 @@ public class ProductFrame {
     private final JPanel switchPanel;
     public final String productsPage = "Products Page";
     public final String checkOutPage = "Checkout Page";
+    public final String purchasePage = "Purchase Page";
     boolean isOnProductsPage;
     String userName;
+    int tempHeight;
 
     JPanel productsViewPanel;
         JPanel handSanitizerPanel;
@@ -726,8 +1246,15 @@ public class ProductFrame {
             JLabel toothPastePrice;
             JLabel toothPasteQuantity;
             JButton buytoothPaste;
+        JPanel medicationPanel;
+            JLabel medicationName;
+            JLabel medicationPrice;
+            JLabel medicationQuantity;
+            JButton buyMedication;
     JPanel checkOutProductsViewPanel;
         JButton confirmCheckOutButton;
+        JLabel cartTotalLabel;
+        double cartTotalVal;
         JPanel  handSanitizerPanelCO;
             JLabel handSanitizerQuantityCO;
             JButton addHandSanitizerCO, removeHandSanitizerCO;
@@ -740,16 +1267,25 @@ public class ProductFrame {
             JLabel toothPasteQuantityCO;
             JButton addtoothPasteCO, removetoothPasteCO;
             JLabel toothPasteTotal;
-
-
-
-
-
-
-
+        JPanel medicationPanelCO;
+            JLabel medicationQuantityCO;
+            JButton addMedicationCO, removeMedicationCO;
+            JLabel medicationTotal;
+        JPanel generalPurchasePanel;
+            JTextField userNameEntry;
+            JTextField userAddress;
+            JTextField CCNumber;
+            JTextField CCV;
+            JTextField CCExpiration;
+            JTextField userNumber;
+            JTextField[] checkOutFields;
+            JButton submitButton;
+    JLabel purchaseTotal;
+    private static final int TIMER_DELAY = 5000 ;
 
 
     ArrayList<Integer> userQuantity;
+    ArrayList<Purchase> purchaseList;
 
 
 

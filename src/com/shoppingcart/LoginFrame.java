@@ -92,6 +92,7 @@ public class LoginFrame {
         //create and position our login button
         loginButton   = new JButton("Login");
         loginButton.setFocusable(false);
+        loginButton.setBackground(new Color(169,169,169));
         loginButton.setFont(new Font("Century Gothic", Font.BOLD, 20));
         loginButton.setBounds(400,500,100,50);
         loginPanel.add(loginButton);

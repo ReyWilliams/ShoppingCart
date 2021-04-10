@@ -1,5 +1,5 @@
-Product Name|ProductID|Product Type|Base Price|Selling Price|Quantity
-Hand Sanitizer|1E3|Health|5.00|7.00|35
-Mask|4E1|Health|2.34|3.47|17
-Toothpaste|TV3|Health|5.00|6.53|23
-Water|W4T|Food|4.00|5.20|15
+Product Name|ProductID|Product Type|Base Price|Selling Price|Quantity|Number Sold
+Hand Sanitizer|1E3|Health|5.00|7.00|35|0
+Mask|4E1|Health|2.34|3.47|17|0
+Toothpaste|TV3|Health|5.00|6.53|23|0
+Medication|W4T|Health|4.00|5.20|15|0
