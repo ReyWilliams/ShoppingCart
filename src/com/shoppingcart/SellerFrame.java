@@ -6,8 +6,12 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Map;
 
 public class SellerFrame 
 {
@@ -47,9 +51,32 @@ public class SellerFrame
         generalInventoryPanel.add(InventoryViewPanel,BorderLayout.CENTER);
 
 
+        generalPurchasePanel = new JPanel(new BorderLayout(50,50));
+
+        //add spacers to the left and right and south
+        generalPurchasePanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.EAST);
+        generalPurchasePanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.WEST);
+        generalPurchasePanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.SOUTH);
+
+        getPurchases();
+
+
+        generalPurchasePanel.add(purchaseText,BorderLayout.CENTER);
+
+        JButton viewProfit = new JButton("View Profit");
+        viewProfit.setBackground(new Color(169,169,169));
+        viewProfit.setFocusable(false);
+        viewProfit.addActionListener(e->viewProfit());
+        generalPurchasePanel.add(viewProfit,BorderLayout.NORTH);
+
+        profitPanel = new JPanel(new FlowLayout());
+        profitLabel = new JLabel();
+        profitPanel.add(profitLabel);
+        generalPurchasePanel.add(profitPanel, BorderLayout.SOUTH);
 
 
         switchPanel.add("Inventory Page", generalInventoryPanel);
+        switchPanel.add("Purchase Page", generalPurchasePanel);
 
         sellerFrame.add(switchPanel);
         cardLayout.show(switchPanel, "Inventory Page");
@@ -65,10 +92,12 @@ public class SellerFrame
         inventorySwitchButton.setFocusable(false);
 
         metricsSwitchButton = new JButton("View Metrics");
+        metricsSwitchButton.addActionListener(e->showPurchasePage());
         metricsSwitchButton.setBackground(new Color(169,169,169));
         metricsSwitchButton.setFocusable(false);
 
         logoutButton = new JButton("Logout");
+        logoutButton.addActionListener(e -> logOut());
         logoutButton.setFocusable(false);
         logoutButton.setBackground(new Color(169,169,169));
 
@@ -358,6 +387,11 @@ public class SellerFrame
         cardLayout.show(switchPanel, "Inventory Page");
     }
 
+    void showPurchasePage(){
+        sellerFrame.setSize(587,775);
+        cardLayout.show(switchPanel, "Purchase Page");
+    }
+
     void updateInventory(ActionEvent evt){
 
         //hand sanitizer buttons
@@ -445,15 +479,80 @@ public class SellerFrame
 
     }
 
+    void logOut(){
+        sellerFrame.dispose();
+
+        //serialize products
+        try {
+            ObjectOutputStream out = new ObjectOutputStream(
+                    new FileOutputStream("Serialized/products.dat"));
+
+            out.writeObject(Products);
+
+            out.close();
+
+            System.out.println("products serialized by seller frame.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        LoginData data = new LoginData();
+        LoginFrame frame = new LoginFrame(data);
+        LoginController controller = new LoginController(data, frame);
+
+    }
+
+    void getPurchases(){
+        purchaseText = new JTextPane();
+        purchaseText.setFont(new Font("Century Gothic", Font.BOLD, 12));
+        PurchaseModel pmodel = new PurchaseModel();
+        purchaseList = pmodel.getPurchases();
+
+        String text = "";
+        for(Purchase p: purchaseList){
+            text += p.toString() + "\n";
+
+        }
+
+        purchaseText.setText(text);
+    }
+
+    void viewProfit(){
+        profitLabel.setFont(new Font("Century Gothic", Font.BOLD, 20));
+
+        double profit = 0;
+
+        for(Purchase p: purchaseList){
+            for(Map.Entry<Product, Integer> n: p.items.entrySet()){
+                profit += ((n.getKey().getSellPrice()-n.getKey().getBasePrice()) * n.getValue());
+            }
+        }
+
+        profitLabel.setText("Profit: " + formatter.format(profit));
+
+        profitLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        generalPurchasePanel.add(profitLabel, BorderLayout.SOUTH);
+
+        sellerFrame.setSize(587,855);
+        generalPurchasePanel.repaint();
+    }
 
     //variable declarations
     ArrayList<Product> Products;
-
+    ArrayList<Purchase> purchaseList;
     JFrame sellerFrame;
     JPanel switchPanel;
     JPanel generalInventoryPanel;
     JPanel sellerTopPanel;
     JPanel InventoryViewPanel;
+    JPanel generalPurchasePanel;
+    JPanel PurchaseViewPanel;
+    JLabel profitLabel;
+    JPanel profitPanel;
+    NumberFormat formatter = NumberFormat.getCurrencyInstance();
+
+    JTextPane purchaseText;
         JPanel handSanitizerPanel;
             JLabel handSanitizerName, handSanitizerQuantity;
             JButton incHSQuantity, decHSQuantity;

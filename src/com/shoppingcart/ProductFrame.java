@@ -28,6 +28,9 @@ public class ProductFrame {
         //get username
         this.userName = userName;
 
+        //get model
+        this.model = model;
+
         //initialize arraylist
         Products = model.getProducts();
 
@@ -72,6 +75,10 @@ public class ProductFrame {
             ProductsClone = model.getProductsClone();
             userQuantity = new ArrayList<>(Arrays.asList(0,0,0,0));
             cartTotalVal = 0;
+        }
+
+        if(exists){ //if there was previously a serialized user file, perform an update to the quantities to make sure everything is synched
+            quantityCheck();
         }
 
         tmpDir = new File("Serialized/purchases.dat");
@@ -1257,6 +1264,21 @@ public class ProductFrame {
 
     }
 
+    void quantityCheck(){
+        int i = 0;
+        for(int val: userQuantity){
+            if(val + ProductsClone.get(i).getQuantity() != Products.get(i).getQuantity()){
+                //if there is a difference in quantities
+
+                ProductsClone = model.getProductsClone();
+                userQuantity = new ArrayList<>(Arrays.asList(0,0,0,0));
+                cartTotalVal = 0;
+                return;
+
+            }
+            i++;
+        }
+    }
     ArrayList<Product> Products, ProductsClone;
     NumberFormat formatter = NumberFormat.getCurrencyInstance();
     java.applet.AudioClip clip;
@@ -1274,6 +1296,7 @@ public class ProductFrame {
     boolean isOnProductsPage;
     String userName;
     int tempHeight;
+    ProductModel model;
 
     JPanel productsViewPanel;
         JPanel handSanitizerPanel;

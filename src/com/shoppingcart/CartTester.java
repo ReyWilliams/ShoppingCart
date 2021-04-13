@@ -11,6 +11,5 @@ public class CartTester {
         LoginFrame frame = new LoginFrame(data);
         LoginController controller = new LoginController(data, frame);
 
-        //SellerFrame frame2 = new SellerFrame();
     }
 }
