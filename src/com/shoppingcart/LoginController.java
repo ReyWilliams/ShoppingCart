@@ -36,7 +36,8 @@ public class LoginController {
                     frame.feedbackLabel.setText("Login successful!");
 
                     if(frame.sellerCheckBox.isSelected()){
-                        SellerFrame sellerFrame = new SellerFrame();
+                        ProductModel model = new ProductModel();
+                        SellerFrame sellerFrame = new SellerFrame(userName, model);
                     }else{
                         ProductModel model = new ProductModel();
                         PurchaseModel pmodel = new PurchaseModel();

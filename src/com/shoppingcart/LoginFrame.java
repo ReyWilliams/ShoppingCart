@@ -42,7 +42,7 @@ public class LoginFrame {
         //image setup
         BufferedImage cartIcon = null;
         try {
-            cartIcon = ImageIO.read(new File("./cartIcon.png"));
+            cartIcon = ImageIO.read(new File("Icons/cartIcon.png"));
         } catch (IOException e) {
             e.printStackTrace();
         }

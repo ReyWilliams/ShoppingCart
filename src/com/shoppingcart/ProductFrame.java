@@ -13,6 +13,8 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,10 +32,14 @@ public class ProductFrame {
         Products = model.getProducts();
 
 
+        //initialize checked out to false (user has not checked out)
+        checkedOut = false;
+
+
         //set up sounds
         URL soundbyte = null;
         try {
-            soundbyte = new File("ka-ching.wav").toURI().toURL();
+            soundbyte = new File("Sounds/ka-ching.wav").toURI().toURL();
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
@@ -42,14 +48,14 @@ public class ProductFrame {
 
 
         //deserialize objects
-        File tmpDir = new File("User(" + userName + ").dat");
+        File tmpDir = new File("Serialized/User(" + userName + ").dat");
         boolean exists = tmpDir.exists();
 
         if(exists) { //user has file
             try { //try to deserialize
 
                 ObjectInputStream in = new ObjectInputStream(
-                        new FileInputStream("User(" + userName + ").dat"));
+                        new FileInputStream("Serialized/User(" + userName + ").dat"));
 
                 ProductsClone = (ArrayList<Product>) in.readObject();
                 userQuantity = (ArrayList<Integer>) in.readObject();
@@ -68,14 +74,14 @@ public class ProductFrame {
             cartTotalVal = 0;
         }
 
-        tmpDir = new File("purchases.dat");
+        tmpDir = new File("Serialized/purchases.dat");
         exists = tmpDir.exists();
 
         if(exists) { //purchases has file
             try { //try to deserialize
 
                 ObjectInputStream in = new ObjectInputStream(
-                        new FileInputStream("purchases.dat"));
+                        new FileInputStream("Serialized/purchases.dat"));
 
                 purchaseList = (ArrayList<Purchase>) in.readObject();
 
@@ -100,12 +106,10 @@ public class ProductFrame {
         productFrame.setTitle("Welcome, " + userName);
 
         switchPanel = new JPanel();
-//        switchPanel.setSize(875,687);
         cardLayout = new CardLayout();
         switchPanel.setLayout(cardLayout);
 
         generalProductsPanel = new JPanel(new BorderLayout(50,50));
-//        generalProductsPanel.setSize(875,687);
 
         //setup top panel which will hold the buttons users will uses to switch between views and logout
         productTopPanel = new JPanel(new FlowLayout());
@@ -120,7 +124,7 @@ public class ProductFrame {
         logoutButton = new JButton("Logout");
         logoutButton.setFocusable(false);
         logoutButton.setBackground(new Color(169,169,169));
-        logoutButton.addActionListener(e -> logOut());
+        logoutButton.addActionListener(e -> logOut(e));
 
         //add the bottoms to the top panel
         productTopPanel.add(productsButton);
@@ -191,11 +195,585 @@ public class ProductFrame {
         generalCheckOutPanel.add(checkOutProductsViewPanel, BorderLayout.CENTER);
 
 
-
         //setup products
         setUpCheckOutProductsView(checkOutProductsViewPanel);
 
+        //setup purchase panel
+        setUpPurchasePanel();
 
+        //set up switch panel
+        switchPanel.add(productsPage, generalProductsPanel);
+        switchPanel.add(checkOutPage, generalCheckOutPanel);
+
+        switchPanel.add(purchasePage, generalPurchasePanel);
+        showProductsPage();
+
+        //finalize frame
+        productFrame.add(switchPanel);
+        productFrame.setVisible(true);
+    }
+
+    void showPurchasePage(){
+
+        //update purchase total text.
+        purchaseTotal.setText("Purchase Total: " + formatter.format(cartTotalVal));
+        purchaseTotal.setBackground(new Color(169,169,169));
+        purchaseTotal.setOpaque(true);
+        purchaseTotal.setBounds(170,140 + tempHeight*6,purchaseTotal.getPreferredSize().width , purchaseTotal.getPreferredSize().height);
+
+        //if cart total is 0, then user cannot check out so turn total to red
+        if(cartTotalVal == 0){
+            cartTotalLabel.setForeground(new Color(255, 114,111));
+            cartTotalLabel.setFont(new Font("Century Gothic", Font.BOLD, 18));
+            return;
+        }
+
+        //switch Panel
+        productFrame.setSize(587,525);
+        cardLayout.show(switchPanel, purchasePage);
+        isOnProductsPage = false;
+
+    }
+
+    void setUpProductsView(JPanel productsViewPanel){
+
+        //set up the hand sanitizer panel
+        handSanitizerPanel = new JPanel();
+
+        handSanitizerPanel.setBackground(new Color(169,169,169));
+        handSanitizerPanel.setLayout( new BoxLayout(handSanitizerPanel,BoxLayout.Y_AXIS));
+        handSanitizerPanel.setSize(25,25);
+
+        //spacer
+        handSanitizerPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        //image setup
+        BufferedImage handSanitizerIcon = null;
+        try {
+            handSanitizerIcon = ImageIO.read(new File("Icons/handSanitizerIcon.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assert handSanitizerIcon != null;
+        JLabel handSanitizerIconLabel = new JLabel(new ImageIcon(handSanitizerIcon));
+        handSanitizerIconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        handSanitizerPanel.add(handSanitizerIconLabel);
+
+        //set up name, price and quantity labels
+        handSanitizerName = new JLabel(Products.get(0).getName());
+        handSanitizerName.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        handSanitizerName.setForeground(new Color(0,255,127));
+        handSanitizerName.setAlignmentX(Component.CENTER_ALIGNMENT);
+        handSanitizerPanel.add(handSanitizerName);
+
+        handSanitizerPrice = new JLabel("Price: " + formatter.format(Products.get(0).getSellPrice()));
+        handSanitizerPrice.setAlignmentX(Component.CENTER_ALIGNMENT);
+        handSanitizerPrice.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        handSanitizerPrice.setForeground(Color.WHITE);
+        handSanitizerPanel.add(handSanitizerPrice);
+
+        handSanitizerQuantity = new JLabel("Quantity: " + ProductsClone.get(0).getQuantity());
+        handSanitizerQuantity.setAlignmentX(Component.CENTER_ALIGNMENT);
+        handSanitizerQuantity.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        handSanitizerQuantity.setForeground(Color.white);
+        handSanitizerPanel.add(handSanitizerQuantity);
+
+        //spacer
+        handSanitizerPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        buyHandSanitizer = new JButton("ADD TO CART");
+        buyHandSanitizer.setBackground(new Color(169,169,200));
+        buyHandSanitizer.setAlignmentX(Component.CENTER_ALIGNMENT);
+        buyHandSanitizer.setFont(new Font("Century Gothic", Font.BOLD, 12));
+        buyHandSanitizer.addActionListener(this::showPurchase);
+        handSanitizerPanel.add(buyHandSanitizer);
+
+        productsViewPanel.add(handSanitizerPanel);
+
+        //set up the mask panel
+        maskPanel = new JPanel();
+
+        maskPanel.setBackground(new Color(169,169,169));
+        maskPanel.setLayout( new BoxLayout(maskPanel,BoxLayout.Y_AXIS));
+        maskPanel.setSize(25,25);
+
+        //spacer
+        maskPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        //image setup
+        BufferedImage maskIcon = null;
+        try {
+            maskIcon = ImageIO.read(new File("Icons/maskIcon.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assert maskIcon != null;
+        JLabel maskIconLabel = new JLabel(new ImageIcon(maskIcon));
+        maskIconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        maskPanel.add(maskIconLabel);
+
+        //set up name, price and quantity labels
+        maskName = new JLabel(Products.get(1).getName());
+        maskName.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        maskName.setForeground(new Color(0,255,127));
+        maskName.setAlignmentX(Component.CENTER_ALIGNMENT);
+        maskPanel.add(maskName);
+
+        maskPrice = new JLabel("Price: " + formatter.format(Products.get(1).getSellPrice()));
+        maskPrice.setAlignmentX(Component.CENTER_ALIGNMENT);
+        maskPrice.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        maskPrice.setForeground(Color.WHITE);
+        maskPanel.add(maskPrice);
+
+        maskQuantity = new JLabel("Quantity: " + ProductsClone.get(1).getQuantity());
+        maskQuantity.setAlignmentX(Component.CENTER_ALIGNMENT);
+        maskQuantity.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        maskQuantity.setForeground(Color.white);
+        maskPanel.add(maskQuantity);
+
+        //spacer
+        maskPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        buyMask = new JButton("ADD TO CART");
+        buyMask.setBackground(new Color(169,169,200));
+        buyMask.setAlignmentX(Component.CENTER_ALIGNMENT);
+        buyMask.setFont(new Font("Century Gothic", Font.BOLD, 12));
+        buyMask.addActionListener(this::showPurchase);
+        maskPanel.add(buyMask);
+
+        productsViewPanel.add(maskPanel);
+
+        //set up the toothPaste panel
+        toothPastePanel = new JPanel();
+
+        toothPastePanel.setBackground(new Color(169,169,169));
+        toothPastePanel.setLayout( new BoxLayout(toothPastePanel,BoxLayout.Y_AXIS));
+        toothPastePanel.setSize(25,25);
+
+        //spacer
+        toothPastePanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        //image setup
+        BufferedImage toothPasteIcon = null;
+        try {
+            toothPasteIcon = ImageIO.read(new File("Icons/toothPasteIcon.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assert toothPasteIcon != null;
+        JLabel toothPasteIconLabel = new JLabel(new ImageIcon(toothPasteIcon));
+        toothPasteIconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        toothPastePanel.add(toothPasteIconLabel);
+
+        //set up name, price and quantity labels
+        toothPasteName = new JLabel(Products.get(2).getName());
+        toothPasteName.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        toothPasteName.setForeground(new Color(0,255,127));
+        toothPasteName.setAlignmentX(Component.CENTER_ALIGNMENT);
+        toothPastePanel.add(toothPasteName);
+
+        toothPastePrice = new JLabel("Price: " + formatter.format(Products.get(2).getSellPrice()));
+        toothPastePrice.setAlignmentX(Component.CENTER_ALIGNMENT);
+        toothPastePrice.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        toothPastePrice.setForeground(Color.WHITE);
+        toothPastePanel.add(toothPastePrice);
+
+        toothPasteQuantity = new JLabel("Quantity: " + ProductsClone.get(2).getQuantity());
+        toothPasteQuantity.setAlignmentX(Component.CENTER_ALIGNMENT);
+        toothPasteQuantity.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        toothPasteQuantity.setForeground(Color.white);
+        toothPastePanel.add(toothPasteQuantity);
+
+        //spacer
+        toothPastePanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        buytoothPaste = new JButton("ADD TO CART");
+        buytoothPaste.setBackground(new Color(169,169,200));
+        buytoothPaste.setAlignmentX(Component.CENTER_ALIGNMENT);
+        buytoothPaste.setFont(new Font("Century Gothic", Font.BOLD, 12));
+        buytoothPaste.addActionListener(this::showPurchase);
+        toothPastePanel.add(buytoothPaste);
+
+        productsViewPanel.add(toothPastePanel);
+
+        //set up the medication panel
+        medicationPanel = new JPanel();
+
+        medicationPanel.setBackground(new Color(169,169,169));
+        medicationPanel.setLayout( new BoxLayout(medicationPanel,BoxLayout.Y_AXIS));
+        medicationPanel.setSize(25,25);
+
+        //spacer
+        medicationPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        //image setup
+        BufferedImage medicationIcon = null;
+        try {
+            medicationIcon = ImageIO.read(new File("Icons/medicationIcon.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assert medicationIcon != null;
+        JLabel medicationIconLabel = new JLabel(new ImageIcon(medicationIcon));
+        medicationIconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationPanel.add(medicationIconLabel);
+
+        //set up name, price and quantity labels
+        medicationName = new JLabel(Products.get(3).getName());
+        medicationName.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        medicationName.setForeground(new Color(0,255,127));
+        medicationName.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationPanel.add(medicationName);
+
+        medicationPrice = new JLabel("Price: " + formatter.format(Products.get(3).getSellPrice()));
+        medicationPrice.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationPrice.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        medicationPrice.setForeground(Color.WHITE);
+        medicationPanel.add(medicationPrice);
+
+        medicationQuantity = new JLabel("Quantity: " + ProductsClone.get(3).getQuantity());
+        medicationQuantity.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationQuantity.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        medicationQuantity.setForeground(Color.white);
+        medicationPanel.add(medicationQuantity);
+
+        //spacer
+        medicationPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        buyMedication = new JButton("ADD TO CART");
+        buyMedication.setBackground(new Color(169,169,200));
+        buyMedication.setAlignmentX(Component.CENTER_ALIGNMENT);
+        buyMedication.setFont(new Font("Century Gothic", Font.BOLD, 12));
+        buyMedication.addActionListener(this::showPurchase);
+        medicationPanel.add(buyMedication);
+
+        productsViewPanel.add(medicationPanel);
+    }
+
+    void setUpCheckOutProductsView(JPanel checkOutProductsViewPanel){
+
+        //set up the hand sanitizer CO panel
+        handSanitizerPanelCO = new JPanel();
+
+        handSanitizerPanelCO.setBackground(new Color(169,169,169));
+        handSanitizerPanelCO.setLayout( new BoxLayout(handSanitizerPanelCO,BoxLayout.Y_AXIS));
+        handSanitizerPanelCO.setSize(25,25);
+
+        //spacer
+        handSanitizerPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        //image setup
+        BufferedImage handSanitizerIcon = null;
+        try {
+            handSanitizerIcon = ImageIO.read(new File("Icons/handSanitizerIcon.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assert handSanitizerIcon != null;
+        JLabel handSanitizerIconLabelCO = new JLabel(new ImageIcon(handSanitizerIcon));
+        handSanitizerIconLabelCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        handSanitizerPanelCO.add(handSanitizerIconLabelCO);
+
+        //set up name, price and quantity labels
+        JLabel handSanitizerNameCO = new JLabel(Products.get(0).getName());
+        handSanitizerNameCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        handSanitizerNameCO.setForeground(Color.black);
+        handSanitizerNameCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        handSanitizerPanelCO.add(handSanitizerNameCO);
+
+        JLabel handSanitizerPriceCO = new JLabel("Price: " + formatter.format(Products.get(0).getSellPrice()));
+        handSanitizerPriceCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        handSanitizerPriceCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        handSanitizerPriceCO.setForeground(Color.WHITE);
+        handSanitizerPanelCO.add(handSanitizerPriceCO);
+
+        handSanitizerQuantityCO = new JLabel("Cart Quantity: " + userQuantity.get(0));
+        handSanitizerQuantityCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        handSanitizerQuantityCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        handSanitizerQuantityCO.setForeground(Color.white);
+        handSanitizerPanelCO.add(handSanitizerQuantityCO);
+
+        handSanitizerTotal = new JLabel(" Item Total: " + formatter.format(Products.get(0).getSellPrice() * userQuantity.get(0)));
+        handSanitizerTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
+        handSanitizerTotal.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        handSanitizerTotal.setForeground(Color.WHITE);
+        handSanitizerPanelCO.add(handSanitizerTotal);
+
+        //spacer
+        handSanitizerPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        //increment and decrement buttons
+        JPanel handSanitizerIncAndDecCO = new JPanel(new FlowLayout());
+        handSanitizerIncAndDecCO.setSize(10,10);
+        handSanitizerIncAndDecCO.setBackground(new Color(169,169,169));
+        addHandSanitizerCO = new JButton("+");
+        addHandSanitizerCO.setBackground(new Color(147,219,170));
+        addHandSanitizerCO.setFocusable(false);
+        addHandSanitizerCO.addActionListener(this::updateCart);
+        addHandSanitizerCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        addHandSanitizerCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        handSanitizerIncAndDecCO.add(addHandSanitizerCO);
+
+        removeHandSanitizerCO = new JButton("-");
+        removeHandSanitizerCO.setBackground(new Color(255, 114,111));
+        removeHandSanitizerCO.setFocusable(false);
+        removeHandSanitizerCO.addActionListener(this::updateCart);
+        removeHandSanitizerCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        removeHandSanitizerCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        handSanitizerIncAndDecCO.add(removeHandSanitizerCO);
+
+        handSanitizerPanelCO.add(handSanitizerIncAndDecCO);
+
+        //if user has item in their cart make it visible when they login
+//        handSanitizerPanelCO.setVisible(userQuantity.get(0) > 0);
+
+        if(userQuantity.get(0) > 0)
+        checkOutProductsViewPanel.add(handSanitizerPanelCO);
+
+        //set up the mask CO panel
+        maskPanelCO = new JPanel();
+
+        maskPanelCO.setBackground(new Color(169,169,169));
+        maskPanelCO.setLayout( new BoxLayout(maskPanelCO,BoxLayout.Y_AXIS));
+        maskPanelCO.setSize(25,25);
+
+        //spacer
+        maskPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        //image setup
+        BufferedImage maskIcon = null;
+        try {
+            maskIcon = ImageIO.read(new File("Icons/maskIcon.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assert maskIcon != null;
+        JLabel maskIconLabelCO = new JLabel(new ImageIcon(maskIcon));
+        maskIconLabelCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        maskPanelCO.add(maskIconLabelCO);
+
+        //set up name, price and quantity labels
+        JLabel maskNameCO = new JLabel(Products.get(1).getName());
+        maskNameCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        maskNameCO.setForeground(Color.black);
+        maskNameCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        maskPanelCO.add(maskNameCO);
+
+        JLabel maskPriceCO = new JLabel("Price: " + formatter.format(Products.get(1).getSellPrice()));
+        maskPriceCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        maskPriceCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        maskPriceCO.setForeground(Color.WHITE);
+        maskPanelCO.add(maskPriceCO);
+
+        maskQuantityCO = new JLabel("Cart Quantity: " + userQuantity.get(1));
+        maskQuantityCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        maskQuantityCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        maskQuantityCO.setForeground(Color.white);
+        maskPanelCO.add(maskQuantityCO);
+
+        maskTotal = new JLabel("Item Total: " + formatter.format(Products.get(1).getSellPrice() * userQuantity.get(1)));
+        maskTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
+        maskTotal.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        maskTotal.setForeground(Color.WHITE);
+        maskPanelCO.add(maskTotal);
+
+        //spacer
+        maskPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        //increment and decrement buttons
+        JPanel maskIncAndDecCO = new JPanel(new FlowLayout());
+        maskIncAndDecCO.setBackground(new Color(169,169,169));
+        maskIncAndDecCO.setSize(10,10);
+        addMaskCO = new JButton("+");
+        addMaskCO.setBackground(new Color(147,219,170));
+        addMaskCO.setFocusable(false);
+        addMaskCO.addActionListener(this::updateCart);
+        addMaskCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        addMaskCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        maskIncAndDecCO.add(addMaskCO);
+
+        removeMaskCO = new JButton("-");
+        removeMaskCO.setBackground(new Color(255, 114,111));
+        removeMaskCO.setFocusable(false);
+        removeMaskCO.addActionListener(this::updateCart);
+        removeMaskCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        removeMaskCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        maskIncAndDecCO.add(removeMaskCO);
+
+        maskPanelCO.add(maskIncAndDecCO);
+
+        //if user has item in their cart make it visible when they login
+//        maskPanelCO.setVisible(userQuantity.get(1) > 0);
+
+        if(userQuantity.get(1) > 0)
+        checkOutProductsViewPanel.add(maskPanelCO);
+
+        //set up the toothPaste CO panel
+        toothPastePanelCO = new JPanel();
+
+        toothPastePanelCO.setBackground(new Color(169,169,169));
+        toothPastePanelCO.setLayout( new BoxLayout(toothPastePanelCO,BoxLayout.Y_AXIS));
+        toothPastePanelCO.setSize(25,25);
+
+        //spacer
+        toothPastePanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        //image setup
+        BufferedImage toothPasteIcon = null;
+        try {
+            toothPasteIcon = ImageIO.read(new File("Icons/toothPasteIcon.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assert toothPasteIcon != null;
+        JLabel toothPasteIconLabelCO = new JLabel(new ImageIcon(toothPasteIcon));
+        toothPasteIconLabelCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        toothPastePanelCO.add(toothPasteIconLabelCO);
+
+        //set up name, price and quantity labels
+        JLabel toothPasteNameCO = new JLabel(Products.get(2).getName());
+        toothPasteNameCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        toothPasteNameCO.setForeground(Color.black);
+        toothPasteNameCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        toothPastePanelCO.add(toothPasteNameCO);
+
+        JLabel toothPastePriceCO = new JLabel("Price: " + formatter.format(Products.get(2).getSellPrice()));
+        toothPastePriceCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        toothPastePriceCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        toothPastePriceCO.setForeground(Color.WHITE);
+        toothPastePanelCO.add(toothPastePriceCO);
+
+        toothPasteQuantityCO = new JLabel("Cart Quantity: " + userQuantity.get(2));
+        toothPasteQuantityCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        toothPasteQuantityCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        toothPasteQuantityCO.setForeground(Color.white);
+        toothPastePanelCO.add(toothPasteQuantityCO);
+
+        toothPasteTotal = new JLabel("Item Total: " + formatter.format(Products.get(2).getSellPrice() * userQuantity.get(2)));
+        toothPasteTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
+        toothPasteTotal.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        toothPasteTotal.setForeground(Color.WHITE);
+        toothPastePanelCO.add(toothPasteTotal);
+
+        //spacer
+        toothPastePanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        //increment and decrement buttons
+        JPanel toothPasteIncAndDecCO = new JPanel(new FlowLayout());
+        toothPasteIncAndDecCO.setBackground(new Color(169,169,169));
+        toothPasteIncAndDecCO.setSize(10,10);
+        addtoothPasteCO = new JButton("+");
+        addtoothPasteCO.setBackground(new Color(147,219,170));
+        addtoothPasteCO.setFocusable(false);
+        addtoothPasteCO.addActionListener(this::updateCart);
+        addtoothPasteCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        addtoothPasteCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        toothPasteIncAndDecCO.add(addtoothPasteCO);
+
+        removetoothPasteCO = new JButton("-");
+        removetoothPasteCO.setBackground(new Color(255, 114,111));
+        removetoothPasteCO.setFocusable(false);
+        removetoothPasteCO.addActionListener(this::updateCart);
+        removetoothPasteCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        removetoothPasteCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        toothPasteIncAndDecCO.add(removetoothPasteCO);
+
+        toothPastePanelCO.add(toothPasteIncAndDecCO);
+
+        //if user has item in their cart make it visible when they login
+        //toothPastePanelCO.setVisible(userQuantity.get(2) > 0);
+
+        if(userQuantity.get(2) > 0)
+        checkOutProductsViewPanel.add(toothPastePanelCO);
+
+        //set up the medication CO panel
+        medicationPanelCO = new JPanel();
+
+        medicationPanelCO.setBackground(new Color(169,169,169));
+        medicationPanelCO.setLayout( new BoxLayout(medicationPanelCO,BoxLayout.Y_AXIS));
+        medicationPanelCO.setSize(25,25);
+
+        //spacer
+        medicationPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        //image setup
+        BufferedImage medicationIcon = null;
+        try {
+            medicationIcon = ImageIO.read(new File("Icons/medicationIcon.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assert medicationIcon != null;
+        JLabel medicationIconLabelCO = new JLabel(new ImageIcon(medicationIcon));
+        medicationIconLabelCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationPanelCO.add(medicationIconLabelCO);
+
+        //set up name, price and quantity labels
+        JLabel medicationNameCO = new JLabel(Products.get(3).getName());
+        medicationNameCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        medicationNameCO.setForeground(Color.black);
+        medicationNameCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationPanelCO.add(medicationNameCO);
+
+        JLabel medicationPriceCO = new JLabel("Price: " + formatter.format(Products.get(3).getSellPrice()));
+        medicationPriceCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationPriceCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        medicationPriceCO.setForeground(Color.WHITE);
+        medicationPanelCO.add(medicationPriceCO);
+
+        medicationQuantityCO = new JLabel("Cart Quantity: " + userQuantity.get(3));
+        medicationQuantityCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationQuantityCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        medicationQuantityCO.setForeground(Color.white);
+        medicationPanelCO.add(medicationQuantityCO);
+
+        medicationTotal = new JLabel("Item Total: " + formatter.format(Products.get(3).getSellPrice() * userQuantity.get(3)));
+        medicationTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
+        medicationTotal.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        medicationTotal.setForeground(Color.WHITE);
+        medicationPanelCO.add(medicationTotal);
+
+        //spacer
+        medicationPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        //increment and decrement buttons
+        JPanel medicationIncAndDecCO = new JPanel(new FlowLayout());
+        medicationIncAndDecCO.setBackground(new Color(169,169,169));
+        medicationIncAndDecCO.setSize(10,10);
+        addMedicationCO = new JButton("+");
+        addMedicationCO.setBackground(new Color(147,219,170));
+        addMedicationCO.setFocusable(false);
+        addMedicationCO.addActionListener(this::updateCart);
+        addMedicationCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        addMedicationCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        medicationIncAndDecCO.add(addMedicationCO);
+
+        removeMedicationCO = new JButton("-");
+        removeMedicationCO.setBackground(new Color(255, 114,111));
+        removeMedicationCO.setFocusable(false);
+        removeMedicationCO.addActionListener(this::updateCart);
+        removeMedicationCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+        removeMedicationCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        medicationIncAndDecCO.add(removeMedicationCO);
+
+        medicationPanelCO.add(medicationIncAndDecCO);
+
+        //if user has item in their cart make it visible when they login
+//        medicationPanelCO.setVisible(userQuantity.get(3) > 0);
+
+        if(userQuantity.get(3) > 0)
+        checkOutProductsViewPanel.add(medicationPanelCO);
+    }
+
+    void setUpPurchasePanel(){
         generalPurchasePanel = new JPanel();
         generalPurchasePanel.setLayout(null);
         generalPurchasePanel.setVisible(true);
@@ -292,585 +870,6 @@ public class ProductFrame {
         submitButton.setFont(new Font("Century Gothic", Font.PLAIN, 18));
         submitButton.setBackground(new Color(169,169,169));
         generalPurchasePanel.add(submitButton);
-
-
-
-
-
-
-
-
-
-        //set up switch panel
-        switchPanel.add(productsPage, generalProductsPanel);
-        switchPanel.add(checkOutPage, generalCheckOutPanel);
-
-        switchPanel.add(purchasePage, generalPurchasePanel);
-        showProductsPage();
-
-        //finalize frame
-        productFrame.add(switchPanel);
-        productFrame.setVisible(true);
-    }
-
-    void showPurchasePage(){
-
-        //update purchase total text.
-        purchaseTotal.setText("Purchase Total: " + formatter.format(cartTotalVal));
-        purchaseTotal.setBackground(new Color(169,169,169));
-        purchaseTotal.setOpaque(true);
-        purchaseTotal.setBounds(170,140 + tempHeight*6,purchaseTotal.getPreferredSize().width , purchaseTotal.getPreferredSize().height);
-
-        //if cart total is 0, then user cannot check out so turn total to red
-        if(cartTotalVal == 0){
-            cartTotalLabel.setForeground(new Color(255, 114,111));
-            cartTotalLabel.setFont(new Font("Century Gothic", Font.BOLD, 18));
-            return;
-        }
-
-        //switch Panel
-        productFrame.setSize(587,525);
-        cardLayout.show(switchPanel, purchasePage);
-        isOnProductsPage = false;
-
-    }
-
-    void setUpProductsView(JPanel productsViewPanel){
-
-        //set up the hand sanitizer panel
-        handSanitizerPanel = new JPanel();
-
-        handSanitizerPanel.setBackground(new Color(169,169,169));
-        handSanitizerPanel.setLayout( new BoxLayout(handSanitizerPanel,BoxLayout.Y_AXIS));
-        handSanitizerPanel.setSize(25,25);
-
-        //spacer
-        handSanitizerPanel.add(Box.createRigidArea(new Dimension(0, 30)));
-
-        //image setup
-        BufferedImage handSanitizerIcon = null;
-        try {
-            handSanitizerIcon = ImageIO.read(new File("./handSanitizerIcon.png"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        assert handSanitizerIcon != null;
-        JLabel handSanitizerIconLabel = new JLabel(new ImageIcon(handSanitizerIcon));
-        handSanitizerIconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        handSanitizerPanel.add(handSanitizerIconLabel);
-
-        //set up name, price and quantity labels
-        handSanitizerName = new JLabel(Products.get(0).getName());
-        handSanitizerName.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        handSanitizerName.setForeground(new Color(0,255,127));
-        handSanitizerName.setAlignmentX(Component.CENTER_ALIGNMENT);
-        handSanitizerPanel.add(handSanitizerName);
-
-        handSanitizerPrice = new JLabel("Price: " + formatter.format(Products.get(0).getSellPrice()));
-        handSanitizerPrice.setAlignmentX(Component.CENTER_ALIGNMENT);
-        handSanitizerPrice.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        handSanitizerPrice.setForeground(Color.WHITE);
-        handSanitizerPanel.add(handSanitizerPrice);
-
-        handSanitizerQuantity = new JLabel("Quantity: " + ProductsClone.get(0).getQuantity());
-        handSanitizerQuantity.setAlignmentX(Component.CENTER_ALIGNMENT);
-        handSanitizerQuantity.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        handSanitizerQuantity.setForeground(Color.white);
-        handSanitizerPanel.add(handSanitizerQuantity);
-
-        //spacer
-        handSanitizerPanel.add(Box.createRigidArea(new Dimension(0, 30)));
-
-        buyHandSanitizer = new JButton("ADD TO CART");
-        buyHandSanitizer.setBackground(new Color(169,169,200));
-        buyHandSanitizer.setAlignmentX(Component.CENTER_ALIGNMENT);
-        buyHandSanitizer.setFont(new Font("Century Gothic", Font.BOLD, 12));
-        buyHandSanitizer.addActionListener(this::showPurchase);
-        handSanitizerPanel.add(buyHandSanitizer);
-
-        productsViewPanel.add(handSanitizerPanel);
-
-        //set up the mask panel
-        maskPanel = new JPanel();
-
-        maskPanel.setBackground(new Color(169,169,169));
-        maskPanel.setLayout( new BoxLayout(maskPanel,BoxLayout.Y_AXIS));
-        maskPanel.setSize(25,25);
-
-        //spacer
-        maskPanel.add(Box.createRigidArea(new Dimension(0, 30)));
-
-        //image setup
-        BufferedImage maskIcon = null;
-        try {
-            maskIcon = ImageIO.read(new File("./maskIcon.png"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        assert maskIcon != null;
-        JLabel maskIconLabel = new JLabel(new ImageIcon(maskIcon));
-        maskIconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        maskPanel.add(maskIconLabel);
-
-        //set up name, price and quantity labels
-        maskName = new JLabel(Products.get(1).getName());
-        maskName.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        maskName.setForeground(new Color(0,255,127));
-        maskName.setAlignmentX(Component.CENTER_ALIGNMENT);
-        maskPanel.add(maskName);
-
-        maskPrice = new JLabel("Price: " + formatter.format(Products.get(1).getSellPrice()));
-        maskPrice.setAlignmentX(Component.CENTER_ALIGNMENT);
-        maskPrice.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        maskPrice.setForeground(Color.WHITE);
-        maskPanel.add(maskPrice);
-
-        maskQuantity = new JLabel("Quantity: " + ProductsClone.get(1).getQuantity());
-        maskQuantity.setAlignmentX(Component.CENTER_ALIGNMENT);
-        maskQuantity.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        maskQuantity.setForeground(Color.white);
-        maskPanel.add(maskQuantity);
-
-        //spacer
-        maskPanel.add(Box.createRigidArea(new Dimension(0, 30)));
-
-        buyMask = new JButton("ADD TO CART");
-        buyMask.setBackground(new Color(169,169,200));
-        buyMask.setAlignmentX(Component.CENTER_ALIGNMENT);
-        buyMask.setFont(new Font("Century Gothic", Font.BOLD, 12));
-        buyMask.addActionListener(this::showPurchase);
-        maskPanel.add(buyMask);
-
-        productsViewPanel.add(maskPanel);
-
-        //set up the toothPaste panel
-        toothPastePanel = new JPanel();
-
-        toothPastePanel.setBackground(new Color(169,169,169));
-        toothPastePanel.setLayout( new BoxLayout(toothPastePanel,BoxLayout.Y_AXIS));
-        toothPastePanel.setSize(25,25);
-
-        //spacer
-        toothPastePanel.add(Box.createRigidArea(new Dimension(0, 30)));
-
-        //image setup
-        BufferedImage toothPasteIcon = null;
-        try {
-            toothPasteIcon = ImageIO.read(new File("./toothPasteIcon.png"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        assert toothPasteIcon != null;
-        JLabel toothPasteIconLabel = new JLabel(new ImageIcon(toothPasteIcon));
-        toothPasteIconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        toothPastePanel.add(toothPasteIconLabel);
-
-        //set up name, price and quantity labels
-        toothPasteName = new JLabel(Products.get(2).getName());
-        toothPasteName.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        toothPasteName.setForeground(new Color(0,255,127));
-        toothPasteName.setAlignmentX(Component.CENTER_ALIGNMENT);
-        toothPastePanel.add(toothPasteName);
-
-        toothPastePrice = new JLabel("Price: " + formatter.format(Products.get(2).getSellPrice()));
-        toothPastePrice.setAlignmentX(Component.CENTER_ALIGNMENT);
-        toothPastePrice.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        toothPastePrice.setForeground(Color.WHITE);
-        toothPastePanel.add(toothPastePrice);
-
-        toothPasteQuantity = new JLabel("Quantity: " + ProductsClone.get(2).getQuantity());
-        toothPasteQuantity.setAlignmentX(Component.CENTER_ALIGNMENT);
-        toothPasteQuantity.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        toothPasteQuantity.setForeground(Color.white);
-        toothPastePanel.add(toothPasteQuantity);
-
-        //spacer
-        toothPastePanel.add(Box.createRigidArea(new Dimension(0, 30)));
-
-        buytoothPaste = new JButton("ADD TO CART");
-        buytoothPaste.setBackground(new Color(169,169,200));
-        buytoothPaste.setAlignmentX(Component.CENTER_ALIGNMENT);
-        buytoothPaste.setFont(new Font("Century Gothic", Font.BOLD, 12));
-        buytoothPaste.addActionListener(this::showPurchase);
-        toothPastePanel.add(buytoothPaste);
-
-        productsViewPanel.add(toothPastePanel);
-
-        //set up the medication panel
-        medicationPanel = new JPanel();
-
-        medicationPanel.setBackground(new Color(169,169,169));
-        medicationPanel.setLayout( new BoxLayout(medicationPanel,BoxLayout.Y_AXIS));
-        medicationPanel.setSize(25,25);
-
-        //spacer
-        medicationPanel.add(Box.createRigidArea(new Dimension(0, 30)));
-
-        //image setup
-        BufferedImage medicationIcon = null;
-        try {
-            medicationIcon = ImageIO.read(new File("./medicationIcon.png"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        assert medicationIcon != null;
-        JLabel medicationIconLabel = new JLabel(new ImageIcon(medicationIcon));
-        medicationIconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        medicationPanel.add(medicationIconLabel);
-
-        //set up name, price and quantity labels
-        medicationName = new JLabel(Products.get(3).getName());
-        medicationName.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        medicationName.setForeground(new Color(0,255,127));
-        medicationName.setAlignmentX(Component.CENTER_ALIGNMENT);
-        medicationPanel.add(medicationName);
-
-        medicationPrice = new JLabel("Price: " + formatter.format(Products.get(3).getSellPrice()));
-        medicationPrice.setAlignmentX(Component.CENTER_ALIGNMENT);
-        medicationPrice.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        medicationPrice.setForeground(Color.WHITE);
-        medicationPanel.add(medicationPrice);
-
-        medicationQuantity = new JLabel("Quantity: " + ProductsClone.get(3).getQuantity());
-        medicationQuantity.setAlignmentX(Component.CENTER_ALIGNMENT);
-        medicationQuantity.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        medicationQuantity.setForeground(Color.white);
-        medicationPanel.add(medicationQuantity);
-
-        //spacer
-        medicationPanel.add(Box.createRigidArea(new Dimension(0, 30)));
-
-        buyMedication = new JButton("ADD TO CART");
-        buyMedication.setBackground(new Color(169,169,200));
-        buyMedication.setAlignmentX(Component.CENTER_ALIGNMENT);
-        buyMedication.setFont(new Font("Century Gothic", Font.BOLD, 12));
-        buyMedication.addActionListener(this::showPurchase);
-        medicationPanel.add(buyMedication);
-
-        productsViewPanel.add(medicationPanel);
-    }
-
-    void setUpCheckOutProductsView(JPanel checkOutProductsViewPanel){
-
-        //set up the hand sanitizer CO panel
-        handSanitizerPanelCO = new JPanel();
-
-        handSanitizerPanelCO.setBackground(new Color(169,169,169));
-        handSanitizerPanelCO.setLayout( new BoxLayout(handSanitizerPanelCO,BoxLayout.Y_AXIS));
-        handSanitizerPanelCO.setSize(25,25);
-
-        //spacer
-        handSanitizerPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
-
-        //image setup
-        BufferedImage handSanitizerIcon = null;
-        try {
-            handSanitizerIcon = ImageIO.read(new File("./handSanitizerIcon.png"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        assert handSanitizerIcon != null;
-        JLabel handSanitizerIconLabelCO = new JLabel(new ImageIcon(handSanitizerIcon));
-        handSanitizerIconLabelCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        handSanitizerPanelCO.add(handSanitizerIconLabelCO);
-
-        //set up name, price and quantity labels
-        JLabel handSanitizerNameCO = new JLabel(Products.get(0).getName());
-        handSanitizerNameCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        handSanitizerNameCO.setForeground(Color.black);
-        handSanitizerNameCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        handSanitizerPanelCO.add(handSanitizerNameCO);
-
-        JLabel handSanitizerPriceCO = new JLabel("Price: " + formatter.format(Products.get(0).getSellPrice()));
-        handSanitizerPriceCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        handSanitizerPriceCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        handSanitizerPriceCO.setForeground(Color.WHITE);
-        handSanitizerPanelCO.add(handSanitizerPriceCO);
-
-        handSanitizerQuantityCO = new JLabel("Cart Quantity: " + userQuantity.get(0));
-        handSanitizerQuantityCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        handSanitizerQuantityCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        handSanitizerQuantityCO.setForeground(Color.white);
-        handSanitizerPanelCO.add(handSanitizerQuantityCO);
-
-        handSanitizerTotal = new JLabel(" Item Total: " + formatter.format(Products.get(0).getSellPrice() * userQuantity.get(0)));
-        handSanitizerTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
-        handSanitizerTotal.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        handSanitizerTotal.setForeground(Color.WHITE);
-        handSanitizerPanelCO.add(handSanitizerTotal);
-
-        //spacer
-        handSanitizerPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
-
-        //increment and decrement buttons
-        JPanel handSanitizerIncAndDecCO = new JPanel(new FlowLayout());
-        handSanitizerIncAndDecCO.setSize(10,10);
-        handSanitizerIncAndDecCO.setBackground(new Color(169,169,169));
-        addHandSanitizerCO = new JButton("+");
-        addHandSanitizerCO.setBackground(new Color(147,219,170));
-        addHandSanitizerCO.setFocusable(false);
-        addHandSanitizerCO.addActionListener(this::updateCart);
-        addHandSanitizerCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        addHandSanitizerCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        handSanitizerIncAndDecCO.add(addHandSanitizerCO);
-
-        removeHandSanitizerCO = new JButton("-");
-        removeHandSanitizerCO.setBackground(new Color(255, 114,111));
-        removeHandSanitizerCO.setFocusable(false);
-        removeHandSanitizerCO.addActionListener(this::updateCart);
-        removeHandSanitizerCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        removeHandSanitizerCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        handSanitizerIncAndDecCO.add(removeHandSanitizerCO);
-
-        handSanitizerPanelCO.add(handSanitizerIncAndDecCO);
-
-        //if user has item in their cart make it visible when they login
-//        handSanitizerPanelCO.setVisible(userQuantity.get(0) > 0);
-
-        if(userQuantity.get(0) > 0)
-        checkOutProductsViewPanel.add(handSanitizerPanelCO);
-
-        //set up the mask CO panel
-        maskPanelCO = new JPanel();
-
-        maskPanelCO.setBackground(new Color(169,169,169));
-        maskPanelCO.setLayout( new BoxLayout(maskPanelCO,BoxLayout.Y_AXIS));
-        maskPanelCO.setSize(25,25);
-
-        //spacer
-        maskPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
-
-        //image setup
-        BufferedImage maskIcon = null;
-        try {
-            maskIcon = ImageIO.read(new File("./maskIcon.png"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        assert maskIcon != null;
-        JLabel maskIconLabelCO = new JLabel(new ImageIcon(maskIcon));
-        maskIconLabelCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        maskPanelCO.add(maskIconLabelCO);
-
-        //set up name, price and quantity labels
-        JLabel maskNameCO = new JLabel(Products.get(1).getName());
-        maskNameCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        maskNameCO.setForeground(Color.black);
-        maskNameCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        maskPanelCO.add(maskNameCO);
-
-        JLabel maskPriceCO = new JLabel("Price: " + formatter.format(Products.get(1).getSellPrice()));
-        maskPriceCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        maskPriceCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        maskPriceCO.setForeground(Color.WHITE);
-        maskPanelCO.add(maskPriceCO);
-
-        maskQuantityCO = new JLabel("Cart Quantity: " + userQuantity.get(1));
-        maskQuantityCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        maskQuantityCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        maskQuantityCO.setForeground(Color.white);
-        maskPanelCO.add(maskQuantityCO);
-
-        maskTotal = new JLabel("Item Total: " + formatter.format(Products.get(1).getSellPrice() * userQuantity.get(1)));
-        maskTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
-        maskTotal.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        maskTotal.setForeground(Color.WHITE);
-        maskPanelCO.add(maskTotal);
-
-        //spacer
-        maskPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
-
-        //increment and decrement buttons
-        JPanel maskIncAndDecCO = new JPanel(new FlowLayout());
-        maskIncAndDecCO.setBackground(new Color(169,169,169));
-        maskIncAndDecCO.setSize(10,10);
-        addMaskCO = new JButton("+");
-        addMaskCO.setBackground(new Color(147,219,170));
-        addMaskCO.setFocusable(false);
-        addMaskCO.addActionListener(this::updateCart);
-        addMaskCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        addMaskCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        maskIncAndDecCO.add(addMaskCO);
-
-        removeMaskCO = new JButton("-");
-        removeMaskCO.setBackground(new Color(255, 114,111));
-        removeMaskCO.setFocusable(false);
-        removeMaskCO.addActionListener(this::updateCart);
-        removeMaskCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        removeMaskCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        maskIncAndDecCO.add(removeMaskCO);
-
-        maskPanelCO.add(maskIncAndDecCO);
-
-        //if user has item in their cart make it visible when they login
-//        maskPanelCO.setVisible(userQuantity.get(1) > 0);
-
-        if(userQuantity.get(1) > 0)
-        checkOutProductsViewPanel.add(maskPanelCO);
-
-        //set up the toothPaste CO panel
-        toothPastePanelCO = new JPanel();
-
-        toothPastePanelCO.setBackground(new Color(169,169,169));
-        toothPastePanelCO.setLayout( new BoxLayout(toothPastePanelCO,BoxLayout.Y_AXIS));
-        toothPastePanelCO.setSize(25,25);
-
-        //spacer
-        toothPastePanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
-
-        //image setup
-        BufferedImage toothPasteIcon = null;
-        try {
-            toothPasteIcon = ImageIO.read(new File("./toothPasteIcon.png"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        assert toothPasteIcon != null;
-        JLabel toothPasteIconLabelCO = new JLabel(new ImageIcon(toothPasteIcon));
-        toothPasteIconLabelCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        toothPastePanelCO.add(toothPasteIconLabelCO);
-
-        //set up name, price and quantity labels
-        JLabel toothPasteNameCO = new JLabel(Products.get(2).getName());
-        toothPasteNameCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        toothPasteNameCO.setForeground(Color.black);
-        toothPasteNameCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        toothPastePanelCO.add(toothPasteNameCO);
-
-        JLabel toothPastePriceCO = new JLabel("Price: " + formatter.format(Products.get(2).getSellPrice()));
-        toothPastePriceCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        toothPastePriceCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        toothPastePriceCO.setForeground(Color.WHITE);
-        toothPastePanelCO.add(toothPastePriceCO);
-
-        toothPasteQuantityCO = new JLabel("Cart Quantity: " + userQuantity.get(2));
-        toothPasteQuantityCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        toothPasteQuantityCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        toothPasteQuantityCO.setForeground(Color.white);
-        toothPastePanelCO.add(toothPasteQuantityCO);
-
-        toothPasteTotal = new JLabel("Item Total: " + formatter.format(Products.get(2).getSellPrice() * userQuantity.get(2)));
-        toothPasteTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
-        toothPasteTotal.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        toothPasteTotal.setForeground(Color.WHITE);
-        toothPastePanelCO.add(toothPasteTotal);
-
-        //spacer
-        toothPastePanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
-
-        //increment and decrement buttons
-        JPanel toothPasteIncAndDecCO = new JPanel(new FlowLayout());
-        toothPasteIncAndDecCO.setBackground(new Color(169,169,169));
-        toothPasteIncAndDecCO.setSize(10,10);
-        addtoothPasteCO = new JButton("+");
-        addtoothPasteCO.setBackground(new Color(147,219,170));
-        addtoothPasteCO.setFocusable(false);
-        addtoothPasteCO.addActionListener(this::updateCart);
-        addtoothPasteCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        addtoothPasteCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        toothPasteIncAndDecCO.add(addtoothPasteCO);
-
-        removetoothPasteCO = new JButton("-");
-        removetoothPasteCO.setBackground(new Color(255, 114,111));
-        removetoothPasteCO.setFocusable(false);
-        removetoothPasteCO.addActionListener(this::updateCart);
-        removetoothPasteCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        removetoothPasteCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        toothPasteIncAndDecCO.add(removetoothPasteCO);
-
-        toothPastePanelCO.add(toothPasteIncAndDecCO);
-
-        //if user has item in their cart make it visible when they login
-        //toothPastePanelCO.setVisible(userQuantity.get(2) > 0);
-
-        if(userQuantity.get(2) > 0)
-        checkOutProductsViewPanel.add(toothPastePanelCO);
-
-        //set up the medication CO panel
-        medicationPanelCO = new JPanel();
-
-        medicationPanelCO.setBackground(new Color(169,169,169));
-        medicationPanelCO.setLayout( new BoxLayout(medicationPanelCO,BoxLayout.Y_AXIS));
-        medicationPanelCO.setSize(25,25);
-
-        //spacer
-        medicationPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
-
-        //image setup
-        BufferedImage medicationIcon = null;
-        try {
-            medicationIcon = ImageIO.read(new File("./medicationIcon.png"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        assert medicationIcon != null;
-        JLabel medicationIconLabelCO = new JLabel(new ImageIcon(medicationIcon));
-        medicationIconLabelCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        medicationPanelCO.add(medicationIconLabelCO);
-
-        //set up name, price and quantity labels
-        JLabel medicationNameCO = new JLabel(Products.get(3).getName());
-        medicationNameCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        medicationNameCO.setForeground(Color.black);
-        medicationNameCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        medicationPanelCO.add(medicationNameCO);
-
-        JLabel medicationPriceCO = new JLabel("Price: " + formatter.format(Products.get(3).getSellPrice()));
-        medicationPriceCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        medicationPriceCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        medicationPriceCO.setForeground(Color.WHITE);
-        medicationPanelCO.add(medicationPriceCO);
-
-        medicationQuantityCO = new JLabel("Cart Quantity: " + userQuantity.get(3));
-        medicationQuantityCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        medicationQuantityCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        medicationQuantityCO.setForeground(Color.white);
-        medicationPanelCO.add(medicationQuantityCO);
-
-        medicationTotal = new JLabel("Item Total: " + formatter.format(Products.get(3).getSellPrice() * userQuantity.get(3)));
-        medicationTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
-        medicationTotal.setFont(new Font("Century Gothic", Font.PLAIN, 18));
-        medicationTotal.setForeground(Color.WHITE);
-        medicationPanelCO.add(medicationTotal);
-
-        //spacer
-        medicationPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
-
-        //increment and decrement buttons
-        JPanel medicationIncAndDecCO = new JPanel(new FlowLayout());
-        medicationIncAndDecCO.setBackground(new Color(169,169,169));
-        medicationIncAndDecCO.setSize(10,10);
-        addMedicationCO = new JButton("+");
-        addMedicationCO.setBackground(new Color(147,219,170));
-        addMedicationCO.setFocusable(false);
-        addMedicationCO.addActionListener(this::updateCart);
-        addMedicationCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        addMedicationCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        medicationIncAndDecCO.add(addMedicationCO);
-
-        removeMedicationCO = new JButton("-");
-        removeMedicationCO.setBackground(new Color(255, 114,111));
-        removeMedicationCO.setFocusable(false);
-        removeMedicationCO.addActionListener(this::updateCart);
-        removeMedicationCO.setAlignmentX(Component.CENTER_ALIGNMENT);
-        removeMedicationCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
-        medicationIncAndDecCO.add(removeMedicationCO);
-
-        medicationPanelCO.add(medicationIncAndDecCO);
-
-        //if user has item in their cart make it visible when they login
-//        medicationPanelCO.setVisible(userQuantity.get(3) > 0);
-
-        if(userQuantity.get(3) > 0)
-        checkOutProductsViewPanel.add(medicationPanelCO);
     }
 
     void showPurchase(ActionEvent evt){
@@ -1149,6 +1148,7 @@ public class ProductFrame {
             }
 
             //if valid go ahead
+            checkedOut = true;
             HashMap<Product, Integer> userPurchases = new HashMap<>();
             int i = 0;
             for(int val: userQuantity){ //for every value in the list of user quantities
@@ -1156,45 +1156,54 @@ public class ProductFrame {
                     userPurchases.put(Products.get(i), val); //add product and amount to purchases.
                 }
 
-                i++;
+                i++; //increment the counter so it matches the right product
             }
             purchaseList.add(new Purchase(userNameEntry.getText(),cartTotalVal, userPurchases));
 
             clip.play();
 
-            JLabel success = new JLabel("Purchase Successful");
-            success.setBounds(200,200 + tempHeight*8,success.getPreferredSize().width , success.getPreferredSize().height);
-            success.setFont(new Font("Century Gothic", Font.PLAIN, 30));
-            success.setBackground(new Color(169,169,169));
-            success.setBackground(new Color(147,219,170));
-            generalPurchasePanel.add(success);
+            purchaseTotal.setText("Purchase Successful");
+            purchaseTotal.setFont(new Font("Century Gothic", Font.PLAIN, 24));
+            purchaseTotal.setBounds(170,140 + tempHeight*6,purchaseTotal.getPreferredSize().width , purchaseTotal.getPreferredSize().height);
+            purchaseTotal.setForeground(new Color(147,219,170));
 
-            logOut();
 
+
+            Timer timer = new Timer(TIMER_DELAY,this::finalizeTransaction);
+            timer.setRepeats(false);
+            timer.start();
+
+            timer = new Timer(3000,this::logOut);
+            timer.setRepeats(false);
+            timer.start();
         }
 
-    void logOut(){
+
+    void logOut(ActionEvent actionEvent){
         productFrame.dispose();
 
-        try{
-            ObjectOutputStream out = new ObjectOutputStream(
-                    new FileOutputStream("User(" + userName + ").dat"));
+        if(!checkedOut) { //if user did not check out
+            //serialize their session
+            try {
+                ObjectOutputStream out = new ObjectOutputStream(
+                        new FileOutputStream("Serialized/User(" + userName + ").dat"));
 
-            out.writeObject(ProductsClone);
-            out.writeObject(userQuantity);
-            out.writeDouble(cartTotalVal);
+                out.writeObject(ProductsClone);
+                out.writeObject(userQuantity);
+                out.writeDouble(cartTotalVal);
 
-            out.close();
+                out.close();
 
-            System.out.println("User " + userName + " serialized.\n");
+                System.out.println("User " + userName + " serialized.\n");
 
-        } catch (IOException e) {
-            e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         try {
             ObjectOutputStream out = new ObjectOutputStream(
-                    new FileOutputStream("purchases.dat"));
+                    new FileOutputStream("Serialized/purchases.dat"));
 
             out.writeObject(purchaseList);
 
@@ -1205,11 +1214,47 @@ public class ProductFrame {
             e.printStackTrace();
         }
 
+        try {
+            ObjectOutputStream out = new ObjectOutputStream(
+                    new FileOutputStream("Serialized/products.dat"));
 
+            out.writeObject(Products);
+
+            out.close();
+
+            System.out.println("products serialized by product frame.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         LoginData data = new LoginData();
         LoginFrame frame = new LoginFrame(data);
         LoginController controller = new LoginController(data, frame);
+    }
+
+    //function to make sure everything syncs after purchase
+    void finalizeTransaction(ActionEvent actionEvent){
+
+        int i = 0;
+        for(int val: userQuantity){
+            if(val != 0){ //if user bought item
+                //update the quantity by how much they bought
+                System.out.println("\nBefore: " + Products.get(i).getQuantity());
+                Products.get(i).setQuantity(Products.get(i).getQuantity() - val);
+                System.out.println("After: " + Products.get(i).getQuantity());
+                System.out.println("Updated " + Products.get(i).getName() + " Count");
+            }
+            i++;
+        }
+
+        //delete the serialized file as we do not need to continue session
+//        try {
+//
+//            Files.delete(Path.of("User(" + userName + ").dat"));
+//        }catch(Exception e){
+//            e.printStackTrace();
+//        }
+
     }
 
     ArrayList<Product> Products, ProductsClone;
@@ -1281,15 +1326,11 @@ public class ProductFrame {
             JTextField[] checkOutFields;
             JButton submitButton;
     JLabel purchaseTotal;
-    private static final int TIMER_DELAY = 5000 ;
+    private static final int TIMER_DELAY = 3000 ;
 
 
     ArrayList<Integer> userQuantity;
     ArrayList<Purchase> purchaseList;
-
-
-
-
-
+    boolean checkedOut;
 
 }

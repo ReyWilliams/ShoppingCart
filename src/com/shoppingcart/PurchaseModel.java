@@ -6,14 +6,14 @@ import java.util.ArrayList;
 public class PurchaseModel {
     public PurchaseModel(){
 
-        File tmpDir = new File("purchases.dat");
+        File tmpDir = new File("Serialized/purchases.dat");
         boolean exists = tmpDir.exists();
 
         if(exists){ //if it exists
             try { //try to deserialize
 
                 ObjectInputStream in = new ObjectInputStream(
-                        new FileInputStream("purchases.dat"));
+                        new FileInputStream("Serialized/purchases.dat"));
 
                 Purchases = (ArrayList<Purchase>) in.readObject();
 
@@ -30,7 +30,7 @@ public class PurchaseModel {
             //try to serialize
             try {
                 ObjectOutputStream out = new ObjectOutputStream(
-                        new FileOutputStream("purchases.dat"));
+                        new FileOutputStream("Serialized/purchases.dat"));
 
                 out.writeObject(Purchases);
 
