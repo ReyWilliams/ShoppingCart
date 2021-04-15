@@ -146,7 +146,8 @@ public class ProductFrame {
         productsViewPanel = new JPanel(new GridLayout(2,2,20,20));
 
         //add the products to the general products panel at the center
-        generalProductsPanel.add(productsViewPanel,BorderLayout.CENTER);
+        JScrollPane productsScrollPane = new JScrollPane(productsViewPanel);
+        generalProductsPanel.add(productsScrollPane,BorderLayout.CENTER);
 
 
         //add text saying user's name as top
@@ -172,7 +173,7 @@ public class ProductFrame {
         JPanel checkOutTopPanel = new JPanel(new FlowLayout());
 
         cartTotalLabel = new JLabel();
-        cartTotalLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        //cartTotalLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         cartTotalLabel.setFont(new Font("Century Gothic", Font.PLAIN, 18));
         cartTotalLabel.setForeground(Color.BLACK);
         cartTotalLabel.setText("Total: " + formatter.format(cartTotalVal));
@@ -199,7 +200,8 @@ public class ProductFrame {
         generalCheckOutPanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.WEST);
         generalCheckOutPanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.SOUTH);
 
-        generalCheckOutPanel.add(checkOutProductsViewPanel, BorderLayout.CENTER);
+        JScrollPane checkOutScrollPane = new JScrollPane(checkOutProductsViewPanel);
+        generalCheckOutPanel.add(checkOutScrollPane, BorderLayout.CENTER);
 
 
         //setup products
@@ -1254,14 +1256,6 @@ public class ProductFrame {
             i++;
         }
 
-        //delete the serialized file as we do not need to continue session
-//        try {
-//
-//            Files.delete(Path.of("User(" + userName + ").dat"));
-//        }catch(Exception e){
-//            e.printStackTrace();
-//        }
-
     }
 
     void quantityCheck(){
@@ -1349,6 +1343,7 @@ public class ProductFrame {
             JTextField[] checkOutFields;
             JButton submitButton;
     JLabel purchaseTotal;
+    JLabel productsTotalLabel;
     private static final int TIMER_DELAY = 3000 ;
 
 

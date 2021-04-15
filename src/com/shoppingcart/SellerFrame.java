@@ -2,6 +2,7 @@ package com.shoppingcart;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
@@ -27,7 +28,7 @@ public class SellerFrame
         sellerFrame.setSize(587,775);
         sellerFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         sellerFrame.setLayout(new BorderLayout(20,20));
-        sellerFrame.setTitle("Welcome, " + userName);
+        sellerFrame.setTitle("Welcome, seller" + userName);
         sellerFrame.setVisible(true);
 
         //setting up the panel that will allow us to switch
@@ -45,13 +46,19 @@ public class SellerFrame
         generalInventoryPanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.WEST);
         generalInventoryPanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.SOUTH);
 
+        JPanel inventoryTopPanel = new JPanel(new FlowLayout());
+        addProduct = new JButton("Add Product");
+        inventoryTopPanel.add(addProduct);
+        generalInventoryPanel.add(inventoryTopPanel, BorderLayout.NORTH);
+
         //set up inventory view panel (holds the squares that show inventory)
         InventoryViewPanel = new JPanel(new GridLayout(2,2,20,20));
         setUpInventoryView();
-        generalInventoryPanel.add(InventoryViewPanel,BorderLayout.CENTER);
+        JScrollPane scrollInventoryPane = new JScrollPane(InventoryViewPanel);
+        generalInventoryPanel.add(scrollInventoryPane,BorderLayout.CENTER);
 
 
-        generalPurchasePanel = new JPanel(new BorderLayout(50,50));
+        generalPurchasePanel = new JPanel(new BorderLayout(50,25));
 
         //add spacers to the left and right and south
         generalPurchasePanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.EAST);
@@ -60,14 +67,23 @@ public class SellerFrame
 
         getPurchases();
 
+        JScrollPane scrollPurchasePane = new JScrollPane(purchaseText);
+        generalPurchasePanel.add(scrollPurchasePane,BorderLayout.CENTER);
 
-        generalPurchasePanel.add(purchaseText,BorderLayout.CENTER);
-
+        JPanel purchaseTopPanel = new JPanel();
+        purchaseTopPanel.setLayout(new BoxLayout(purchaseTopPanel, BoxLayout.Y_AXIS));
         JButton viewProfit = new JButton("View Profit");
         viewProfit.setBackground(new Color(169,169,169));
         viewProfit.setFocusable(false);
         viewProfit.addActionListener(e->viewProfit());
-        generalPurchasePanel.add(viewProfit,BorderLayout.NORTH);
+        JLabel purchasesLabel = new JLabel("Purchases");
+        purchasesLabel.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        purchaseTopPanel.add(viewProfit);
+        purchaseTopPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+        purchaseTopPanel.add(purchasesLabel);
+        JPanel purchaseTopPanelFlow = new JPanel(new FlowLayout());
+        purchaseTopPanelFlow.add(purchaseTopPanel);
+        generalPurchasePanel.add(purchaseTopPanelFlow,BorderLayout.NORTH);
 
         profitPanel = new JPanel(new FlowLayout());
         profitLabel = new JLabel();
@@ -112,6 +128,7 @@ public class SellerFrame
     }
 
     void setUpInventoryView(){
+
         //set up the hand sanitizer panel
         handSanitizerPanel = new JPanel();
 
@@ -388,7 +405,12 @@ public class SellerFrame
     }
 
     void showPurchasePage(){
-        sellerFrame.setSize(587,775);
+        if(purchaseBottomPanel != null && purchaseBottomPanel.getComponentCount() != 0){
+            sellerFrame.setSize(587,855);
+        }else{
+            sellerFrame.setSize(587,775);
+        }
+
         cardLayout.show(switchPanel, "Purchase Page");
     }
 
@@ -518,8 +540,10 @@ public class SellerFrame
     }
 
     void viewProfit(){
-        profitLabel.setFont(new Font("Century Gothic", Font.BOLD, 20));
 
+        profitLabel.setFont(new Font("Century Gothic", Font.BOLD, 20));
+        profitLabel.setForeground(new Color(147,219,170));
+        profitLabel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
         double profit = 0;
 
         for(Purchase p: purchaseList){
@@ -530,9 +554,14 @@ public class SellerFrame
 
         profitLabel.setText("Profit: " + formatter.format(profit));
 
-        profitLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        if(purchaseBottomPanel != null && purchaseBottomPanel.getComponentCount() != 0){
+            return;
+        }
 
-        generalPurchasePanel.add(profitLabel, BorderLayout.SOUTH);
+        purchaseBottomPanel = new JPanel(new FlowLayout());
+
+        purchaseBottomPanel.add(profitLabel);
+        generalPurchasePanel.add(purchaseBottomPanel, BorderLayout.SOUTH);
 
         sellerFrame.setSize(587,855);
         generalPurchasePanel.repaint();
@@ -550,7 +579,9 @@ public class SellerFrame
     JPanel PurchaseViewPanel;
     JLabel profitLabel;
     JPanel profitPanel;
+    JPanel purchaseBottomPanel;
     NumberFormat formatter = NumberFormat.getCurrencyInstance();
+    JButton addProduct;
 
     JTextPane purchaseText;
         JPanel handSanitizerPanel;
