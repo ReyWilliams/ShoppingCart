@@ -27,17 +27,19 @@ public class LoginData {
             if(values[0].equals("Username")) continue;
 
             //add the first string as key, the second as value
-            loginMap.put(values[0],values[1]);
+            HashMap<String, Boolean> temp = new HashMap<>();
+            temp.put(values[1],Boolean.valueOf(values[2]));
+            loginMap.put(values[0],temp);
         }
 
 //        System.out.println(loginMap);
 
     }
 
-    HashMap<String,String> getLoginMap(){
+    HashMap<String, HashMap<String, Boolean>> getLoginMap(){
         return loginMap;
     }
 
-    HashMap<String, String> loginMap;
+    HashMap<String, HashMap<String, Boolean>> loginMap;
     Scanner in;
 }

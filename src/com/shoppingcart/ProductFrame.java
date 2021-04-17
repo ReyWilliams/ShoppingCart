@@ -1,9 +1,5 @@
 package com.shoppingcart;
 
-
-
-import jdk.swing.interop.SwingInterOpUtils;
-
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
@@ -13,8 +9,6 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +33,7 @@ public class ProductFrame {
         checkedOut = false;
 
 
+
         //set up sounds
         URL soundbyte = null;
         try {
@@ -54,7 +49,10 @@ public class ProductFrame {
         File tmpDir = new File("Serialized/User(" + userName + ").dat");
         boolean exists = tmpDir.exists();
 
+        NPClone = null;
+
         if(exists) { //user has file
+
             try { //try to deserialize
 
                 ObjectInputStream in = new ObjectInputStream(
@@ -63,6 +61,7 @@ public class ProductFrame {
                 ProductsClone = (ArrayList<Product>) in.readObject();
                 userQuantity = (ArrayList<Integer>) in.readObject();
                 cartTotalVal = in.readDouble();
+                NPClone = (Product) in.readObject();
 
                 in.close();
 
@@ -73,13 +72,12 @@ public class ProductFrame {
             }
         }else{ //choose default values
             ProductsClone = model.getProductsClone();
-            userQuantity = new ArrayList<>(Arrays.asList(0,0,0,0));
+            userQuantity = new ArrayList<>(Arrays.asList(0,0,0,0,0));
             cartTotalVal = 0;
+
         }
 
-        if(exists){ //if there was previously a serialized user file, perform an update to the quantities to make sure everything is synched
-            quantityCheck();
-        }
+
 
         tmpDir = new File("Serialized/purchases.dat");
         exists = tmpDir.exists();
@@ -102,7 +100,48 @@ public class ProductFrame {
             purchaseList = pmodel.getPurchases();
         }
 
+        tmpDir = new File("Serialized/newProduct.dat");
+        exists = tmpDir.exists();
 
+        if(exists){
+            try { //try to deserialize
+
+                ObjectInputStream in = new ObjectInputStream(
+                        new FileInputStream("Serialized/newProduct.dat"));
+
+                newProduct = (Product) in.readObject();
+
+                in.close();
+
+                System.out.println("new product deserialized by product frame.");
+
+                newProductPresent = true;
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+
+
+        }else{
+            newProductPresent = false;
+        }
+
+        tmpDir = new File("Serialized/User(" + userName + ").dat");
+        exists = tmpDir.exists();
+
+
+
+        //set up the view of added products
+        if(newProductPresent && NPClone == null){
+            try {
+                NPClone = newProduct.clone();
+            } catch (CloneNotSupportedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if(exists){ //if there was previously a serialized user file, perform an update to the quantities to make sure everything is synched
+            quantityCheck();
+        }
 
         //setup product frame w/ parameters
         productFrame = new JFrame();
@@ -118,7 +157,7 @@ public class ProductFrame {
 
         generalProductsPanel = new JPanel(new BorderLayout(50,50));
 
-        //setup top panel which will hold the buttons users will uses to switch between views and logout
+        //setup top panel which will hold the buttons users will use to switch between views and logout
         productTopPanel = new JPanel(new FlowLayout());
         checkoutButton = new JButton("Checkout Items");
         checkoutButton.setBackground(new Color(169,169,169));
@@ -143,10 +182,11 @@ public class ProductFrame {
 
 
         //setup the products view panel which will be a grid
-        productsViewPanel = new JPanel(new GridLayout(2,2,20,20));
+        productsViewPanel = new JPanel(new GridLayout(5,2,20,20));
 
         //add the products to the general products panel at the center
         JScrollPane productsScrollPane = new JScrollPane(productsViewPanel);
+        productsScrollPane.getVerticalScrollBar().setUnitIncrement(10);
         generalProductsPanel.add(productsScrollPane,BorderLayout.CENTER);
 
 
@@ -157,6 +197,16 @@ public class ProductFrame {
         welcomeUser.setFont(new Font("Century Gothic", Font.BOLD, 26));
         welcomeUser.setForeground(Color.black);
         productTopPanel.add(welcomeUser);
+
+        productTopPanel.add(Box.createRigidArea(new Dimension(30, 0)));
+
+
+        productsTotalLabel = new JLabel("Total: " + formatter.format(0));
+        productsTotalLabel.setBorder(BorderFactory.createLineBorder(Color.black, 2));
+        productsTotalLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        productsTotalLabel.setFont(new Font("Century Gothic", Font.BOLD, 18));
+        productTopPanel.add(productsTotalLabel);
+
         generalProductsPanel.add(productTopPanel,BorderLayout.NORTH);
 
         //add spacers to the left and right and south
@@ -165,6 +215,8 @@ public class ProductFrame {
         generalProductsPanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.SOUTH);
 
         setUpProductsView(productsViewPanel);
+
+
 
         //checkout Panel
         JPanel generalCheckOutPanel = new JPanel(new BorderLayout(50,50));
@@ -187,9 +239,6 @@ public class ProductFrame {
         checkOutTopPanel.add(cartTotalLabel);
         generalCheckOutPanel.add(checkOutTopPanel, BorderLayout.NORTH);
 
-
-
-
         //checkout panel products
         checkOutProductsViewPanel = new JPanel(new GridLayout(2,2,20,20));
 
@@ -201,7 +250,10 @@ public class ProductFrame {
         generalCheckOutPanel.add(Box.createRigidArea(new Dimension(0, 30)),BorderLayout.SOUTH);
 
         JScrollPane checkOutScrollPane = new JScrollPane(checkOutProductsViewPanel);
+        checkOutScrollPane.getVerticalScrollBar().setUnitIncrement(10);
+
         generalCheckOutPanel.add(checkOutScrollPane, BorderLayout.CENTER);
+
 
 
         //setup products
@@ -221,6 +273,7 @@ public class ProductFrame {
         productFrame.add(switchPanel);
         productFrame.setVisible(true);
     }
+
 
     void showPurchasePage(){
 
@@ -461,6 +514,63 @@ public class ProductFrame {
         medicationPanel.add(buyMedication);
 
         productsViewPanel.add(medicationPanel);
+
+        //set up the new product panel
+        newProductPanel = new JPanel();
+
+        newProductPanel.setBackground(new Color(169,169,169));
+        newProductPanel.setLayout( new BoxLayout(newProductPanel,BoxLayout.Y_AXIS));
+        newProductPanel.setSize(25,25);
+
+        //spacer
+        newProductPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        //image setup
+        BufferedImage newProductIcon = null;
+        try {
+            newProductIcon = ImageIO.read(new File("Icons/newProductIcon.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assert newProductIcon != null;
+        JLabel newProductIconLabel = new JLabel(new ImageIcon(newProductIcon));
+        newProductIconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        newProductPanel.add(newProductIconLabel);
+
+        if(newProductPresent) {
+            //set up name, price and quantity labels
+            NPName = new JLabel(newProduct.getName());
+            NPName.setFont(new Font("Century Gothic", Font.BOLD, 20));
+            if(NPClone.getQuantity() == 0){NPName.setForeground(new Color(255, 11, 127));}
+            else{NPName.setForeground(new Color(0, 255, 127));}
+            NPName.setAlignmentX(Component.CENTER_ALIGNMENT);
+            newProductPanel.add(NPName);
+
+            NPPrice = new JLabel("Price: " + formatter.format(newProduct.getSellPrice()));
+            NPPrice.setAlignmentX(Component.CENTER_ALIGNMENT);
+            NPPrice.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+            NPPrice.setForeground(Color.WHITE);
+            newProductPanel.add(NPPrice);
+
+            NPQuantity = new JLabel("Quantity: " + NPClone.getQuantity());
+            NPQuantity.setAlignmentX(Component.CENTER_ALIGNMENT);
+            NPQuantity.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+            NPQuantity.setForeground(Color.white);
+            newProductPanel.add(NPQuantity);
+
+            //spacer
+            newProductPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+            buyNP = new JButton("ADD TO CART");
+            buyNP.setBackground(new Color(169, 169, 200));
+            buyNP.setAlignmentX(Component.CENTER_ALIGNMENT);
+            buyNP.setFont(new Font("Century Gothic", Font.BOLD, 12));
+            buyNP.addActionListener(this::showPurchase);
+            newProductPanel.add(buyNP);
+
+            productsViewPanel.add(newProductPanel);
+        }
     }
 
     void setUpCheckOutProductsView(JPanel checkOutProductsViewPanel){
@@ -780,6 +890,84 @@ public class ProductFrame {
 
         if(userQuantity.get(3) > 0)
         checkOutProductsViewPanel.add(medicationPanelCO);
+
+        if(newProductPresent) {
+            //set up the new product CO panel
+            NPPanelCO = new JPanel();
+
+            NPPanelCO.setBackground(new Color(169, 169, 169));
+            NPPanelCO.setLayout(new BoxLayout(NPPanelCO, BoxLayout.Y_AXIS));
+            NPPanelCO.setSize(25, 25);
+
+            //spacer
+            NPPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
+
+            //image setup
+            BufferedImage newProductIcon = null;
+            try {
+                newProductIcon = ImageIO.read(new File("Icons/newProductIcon.png"));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            assert newProductIcon != null;
+            JLabel newProductIconLabel = new JLabel(new ImageIcon(newProductIcon));
+            newProductIconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            NPPanelCO.add(newProductIconLabel);
+
+            //set up name, price and quantity labels
+            JLabel NPNameCO = new JLabel(newProduct.getName());
+            NPNameCO.setFont(new Font("Century Gothic", Font.BOLD, 20));
+            NPNameCO.setForeground(Color.black);
+            NPNameCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+            NPPanelCO.add(NPNameCO);
+
+            JLabel NPPriceCO = new JLabel("Price: " + formatter.format(newProduct.getSellPrice()));
+            NPPriceCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+            NPPriceCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+            NPPriceCO.setForeground(Color.WHITE);
+            NPPanelCO.add(NPPriceCO);
+
+            NPQuantityCO = new JLabel("Cart Quantity: " + userQuantity.get(4));
+            NPQuantityCO.setAlignmentX(Component.CENTER_ALIGNMENT);
+            NPQuantityCO.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+            NPQuantityCO.setForeground(Color.white);
+            NPPanelCO.add(NPQuantityCO);
+
+            NPTotal = new JLabel("Item Total: " + formatter.format(newProduct.getSellPrice() * userQuantity.get(4)));
+            NPTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
+            NPTotal.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+            NPTotal.setForeground(Color.WHITE);
+            NPPanelCO.add(NPTotal);
+
+            //spacer
+            NPPanelCO.add(Box.createRigidArea(new Dimension(0, 15)));
+
+            //increment and decrement buttons
+            JPanel NPIncAndDec = new JPanel(new FlowLayout());
+            NPIncAndDec.setBackground(new Color(169, 169, 169));
+            NPIncAndDec.setSize(10, 10);
+            addNP = new JButton("+");
+            addNP.setBackground(new Color(147, 219, 170));
+            addNP.setFocusable(false);
+            addNP.addActionListener(this::updateCart);
+            addNP.setAlignmentX(Component.CENTER_ALIGNMENT);
+            addNP.setFont(new Font("Century Gothic", Font.BOLD, 20));
+            NPIncAndDec.add(addNP);
+
+            removeNP = new JButton("-");
+            removeNP.setBackground(new Color(255, 114, 111));
+            removeNP.setFocusable(false);
+            removeNP.addActionListener(this::updateCart);
+            removeNP.setAlignmentX(Component.CENTER_ALIGNMENT);
+            removeNP.setFont(new Font("Century Gothic", Font.BOLD, 20));
+            NPIncAndDec.add(removeNP);
+
+            NPPanelCO.add(NPIncAndDec);
+
+            if (userQuantity.get(4) > 0)
+                checkOutProductsViewPanel.add(NPPanelCO);
+        }
     }
 
     void setUpPurchasePanel(){
@@ -799,7 +987,7 @@ public class ProductFrame {
         JLabel userNumberLabel = new JLabel("Number: ");
         userNumberLabel.setFont(new Font("Century Gothic", Font.PLAIN, 18));
         userNumberLabel.setForeground(Color.BLACK);
-        userNumberLabel.setBounds(20,40 + tempHeight*1,userNameLabel.getPreferredSize().width, userNameLabel.getPreferredSize().height);
+        userNumberLabel.setBounds(20,40 + tempHeight,userNameLabel.getPreferredSize().width, userNameLabel.getPreferredSize().height);
         generalPurchasePanel.add(userNumberLabel);
 
 
@@ -957,7 +1145,6 @@ public class ProductFrame {
                 medicationName.setForeground(new Color(255, 11, 127));
             }
 
-//            medicationPanelCO.setVisible(true);
 
             if(userQuantity.get(3) == 0){
                 checkOutProductsViewPanel.add(medicationPanelCO);
@@ -970,6 +1157,26 @@ public class ProductFrame {
             medicationQuantity.setText("Quantity: " + (ProductsClone.get(3).getQuantity()));
 
             medicationTotal.setText("Total: " + formatter.format(Products.get(3).getSellPrice() * userQuantity.get(3)));
+        }else if(evt.getSource() == buyNP){
+            if (NPClone.getQuantity() == 0) { //if there is no more to add to cart
+                NPName.setForeground(new Color(255, 11, 127));
+                return;
+            } else if (NPClone.getQuantity()  == 1) {
+                NPName.setForeground(new Color(255, 11, 127));
+            }
+
+
+            if(userQuantity.get(4) == 0){
+                checkOutProductsViewPanel.add(NPPanelCO);
+            }
+
+            userQuantity.set(4, userQuantity.get(4) + 1);
+            NPQuantityCO.setText("Cart Quantity: " + userQuantity.get(4));
+
+            NPClone.setQuantity(NPClone.getQuantity() - 1);
+            NPQuantity.setText("Quantity: " + (NPClone.getQuantity()));
+
+            NPTotal.setText("Total: " + formatter.format(NPClone.getSellPrice() * userQuantity.get(4)));
         }
 
         updateTotal();
@@ -992,6 +1199,10 @@ public class ProductFrame {
         }else if(userQuantity.get(3) == 0 && evt.getSource() == removeMedicationCO){
             return;
         }else if(userQuantity.get(3) >= Products.get(3).getQuantity() && evt.getSource() == addMedicationCO){
+            return;
+        }else if(userQuantity.get(4) == 0 && evt.getSource() == removeNP){
+            return;
+        }else if(userQuantity.get(4) >= newProduct.getQuantity() && evt.getSource() == addNP){
             return;
         }
 
@@ -1102,6 +1313,33 @@ public class ProductFrame {
             medicationQuantityCO.setText("Cart Quantity: " + userQuantity.get(3));
             ProductsClone.get(3).setQuantity(ProductsClone.get(3).getQuantity() + 1);
             medicationQuantity.setText("Quantity: " + (ProductsClone.get(3).getQuantity()));
+        }else if(evt.getSource() == addNP) {
+
+            if(NPClone.getQuantity() == 1){
+                NPName.setForeground(new Color(255, 11, 127));
+            }
+
+            userQuantity.set(4,userQuantity.get(4) + 1);
+            NPQuantityCO.setText("Cart Quantity: " + userQuantity.get(3));
+
+            NPClone.setQuantity(NPClone.getQuantity() - 1);
+            NPQuantity.setText("Quantity: " + (NPClone.getQuantity()));
+        }else if(evt.getSource() == removeNP){
+
+            if(userQuantity.get(4) == 1){
+                checkOutProductsViewPanel.remove(NPPanelCO);
+                checkOutProductsViewPanel.repaint();
+
+                if(checkOutProductsViewPanel.getComponentCount() == 0){
+                    showProductsPage();
+                }
+            }
+
+            NPName.setForeground(new Color(0,255,127));
+            userQuantity.set(4,userQuantity.get(4) - 1);
+            NPQuantityCO.setText("Cart Quantity: " + userQuantity.get(4));
+            NPClone.setQuantity(NPClone.getQuantity() + 1);
+            NPQuantity.setText("Quantity: " + (NPClone.getQuantity()));
         }
 
 
@@ -1109,6 +1347,9 @@ public class ProductFrame {
         maskTotal.setText("Total: " + formatter.format(Products.get(1).getSellPrice() * userQuantity.get(1)));
         toothPasteTotal.setText("Total: " + formatter.format(Products.get(2).getSellPrice() * userQuantity.get(2)));
         medicationTotal.setText("Total: " + formatter.format(Products.get(3).getSellPrice() * userQuantity.get(3)));
+
+        if(newProductPresent)
+        NPTotal.setText("Total: " + formatter.format(newProduct.getSellPrice() * userQuantity.get(4)));
 
         updateTotal();
     }
@@ -1121,11 +1362,16 @@ public class ProductFrame {
         int i = 0;
         cartTotalVal = 0;
         for(int val: userQuantity){
+            if(i == 4){continue;}
             cartTotalVal += (val*Products.get(i++).getSellPrice());
         }
+        //add other total for new product
+        if(newProductPresent)
+        cartTotalVal += userQuantity.get(4) * newProduct.getSellPrice();
 
 
         cartTotalLabel.setText("Total: " + formatter.format(cartTotalVal));
+        productsTotalLabel.setText("Total: " + formatter.format(cartTotalVal));
     }
 
     void showProductsPage(){
@@ -1161,12 +1407,18 @@ public class ProductFrame {
             HashMap<Product, Integer> userPurchases = new HashMap<>();
             int i = 0;
             for(int val: userQuantity){ //for every value in the list of user quantities
+                if(i == 4){continue;}
                 if(val != 0){ //if value is not 0 (they bought the product)
                     userPurchases.put(Products.get(i), val); //add product and amount to purchases.
                 }
 
                 i++; //increment the counter so it matches the right product
             }
+
+            if(userQuantity.get(4) != 0 ){
+                userPurchases.put(newProduct, userQuantity.get(4));
+            }
+
             purchaseList.add(new Purchase(userNameEntry.getText(),cartTotalVal, userPurchases));
 
             clip.play();
@@ -1200,6 +1452,7 @@ public class ProductFrame {
                 out.writeObject(ProductsClone);
                 out.writeObject(userQuantity);
                 out.writeDouble(cartTotalVal);
+                out.writeObject(NPClone);
 
                 out.close();
 
@@ -1209,6 +1462,9 @@ public class ProductFrame {
                 e.printStackTrace();
             }
         }
+
+
+
 
         try {
             ObjectOutputStream out = new ObjectOutputStream(
@@ -1236,16 +1492,39 @@ public class ProductFrame {
             e.printStackTrace();
         }
 
+        File tmpDir = new File("Serialized/newProduct.dat");
+        boolean exists = tmpDir.exists();
+
+        if(exists){
+            try {
+                ObjectOutputStream out = new ObjectOutputStream(
+                        new FileOutputStream("Serialized/newProduct.dat"));
+
+                out.writeObject(newProduct);
+
+                out.close();
+
+                System.out.println("new product serialized by product frame.");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+
         LoginData data = new LoginData();
         LoginFrame frame = new LoginFrame(data);
         LoginController controller = new LoginController(data, frame);
     }
+
+
+
 
     //function to make sure everything syncs after purchase
     void finalizeTransaction(ActionEvent actionEvent){
 
         int i = 0;
         for(int val: userQuantity){
+                if(val == 4){continue;}
             if(val != 0){ //if user bought item
                 //update the quantity by how much they bought
                 System.out.println("\nBefore: " + Products.get(i).getQuantity());
@@ -1256,23 +1535,45 @@ public class ProductFrame {
             i++;
         }
 
+        if(newProductPresent){
+            if(userQuantity.get(4) != 0){
+                System.out.println("\nBefore: " + newProduct.getQuantity());
+                newProduct.setQuantity(newProduct.getQuantity() - userQuantity.get(4));
+                System.out.println("After: " + newProduct.getQuantity());
+                System.out.println("Updated " + newProduct.getName() + " Count");
+            }
+        }
+
     }
 
     void quantityCheck(){
         int i = 0;
         for(int val: userQuantity){
+            if(i == 4){continue;}
             if(val + ProductsClone.get(i).getQuantity() != Products.get(i).getQuantity()){
                 //if there is a difference in quantities
 
                 ProductsClone = model.getProductsClone();
-                userQuantity = new ArrayList<>(Arrays.asList(0,0,0,0));
+                userQuantity = new ArrayList<>(Arrays.asList(0,0,0,0,0));
                 cartTotalVal = 0;
                 return;
 
             }
             i++;
         }
+
+        if(newProductPresent)
+        if(userQuantity.get(4) + NPClone.getQuantity() != newProduct.getQuantity()){
+            try {
+                NPClone = newProduct.clone();
+            } catch (CloneNotSupportedException e) {
+                e.printStackTrace();
+            }
+        }
     }
+
+
+
     ArrayList<Product> Products, ProductsClone;
     NumberFormat formatter = NumberFormat.getCurrencyInstance();
     java.applet.AudioClip clip;
@@ -1313,6 +1614,11 @@ public class ProductFrame {
             JLabel medicationPrice;
             JLabel medicationQuantity;
             JButton buyMedication;
+        JPanel newProductPanel;
+            JLabel NPName;
+            JLabel NPPrice;
+            JLabel NPQuantity;
+            JButton buyNP;
     JPanel checkOutProductsViewPanel;
         JButton confirmCheckOutButton;
         JLabel cartTotalLabel;
@@ -1333,6 +1639,11 @@ public class ProductFrame {
             JLabel medicationQuantityCO;
             JButton addMedicationCO, removeMedicationCO;
             JLabel medicationTotal;
+        JPanel NPPanelCO;
+            JLabel NPQuantityCO;
+            JButton addNP, removeNP;
+            JLabel NPTotal;
+
         JPanel generalPurchasePanel;
             JTextField userNameEntry;
             JTextField userAddress;
@@ -1345,6 +1656,9 @@ public class ProductFrame {
     JLabel purchaseTotal;
     JLabel productsTotalLabel;
     private static final int TIMER_DELAY = 3000 ;
+    Product newProduct;
+    Boolean newProductPresent;
+    Product NPClone;
 
 
     ArrayList<Integer> userQuantity;

@@ -3,6 +3,8 @@ package com.shoppingcart;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.HashMap;
+import java.util.Map;
 
 public class LoginController {
 
@@ -30,15 +32,28 @@ public class LoginController {
                 frame.feedbackLabel.setText("");
 
                 //if that is the correct password
-                if(data.loginMap.get(userName).equals(passWord)){
+                HashMap<String,Boolean> map = data.loginMap.get(userName);
+                Map.Entry<String,Boolean> entry = map.entrySet().iterator().next();
+                String password = entry.getKey();
+                boolean isSeller = entry.getValue();
+
+                if(password.equals(passWord)){
                     frame.feedbackLabel.setForeground(Color.GREEN);
-                    frame.loginFrame.dispose();
                     frame.feedbackLabel.setText("Login successful!");
 
                     if(frame.sellerCheckBox.isSelected()){
-                        ProductModel model = new ProductModel();
-                        SellerFrame sellerFrame = new SellerFrame(userName, model);
+
+                        if(isSeller) {
+                            frame.loginFrame.dispose();
+                            ProductModel model = new ProductModel();
+                            SellerFrame sellerFrame = new SellerFrame(userName, model);
+                        }else{
+                            frame.feedbackLabel.setForeground(Color.RED);
+                            frame.feedbackLabel.setText("User not seller!");
+                        }
                     }else{
+
+                        frame.loginFrame.dispose();
                         ProductModel model = new ProductModel();
                         PurchaseModel pmodel = new PurchaseModel();
                         ProductFrame productFrame = new ProductFrame(model, userName, pmodel);

@@ -1,6 +1,6 @@
-Username    Password
-Katie       Dao
-Reynaldo    Williams
-Ionut       Cardei
-Object      Oriented
-1           2
+Username    Password    IsSeller
+Katie       Dao         false
+Reynaldo    Williams    false
+Ionut       Cardei      true
+Object      Oriented    false
+1           2           true

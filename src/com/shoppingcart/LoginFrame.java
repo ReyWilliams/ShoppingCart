@@ -121,7 +121,7 @@ public class LoginFrame {
     JPanel loginPanel;
     JCheckBox sellerCheckBox;
     JLabel feedbackLabel;
-    HashMap<String, String> loginMap;
+    HashMap<String, HashMap<String, Boolean>> loginMap;
     LoginData data;
 
 }

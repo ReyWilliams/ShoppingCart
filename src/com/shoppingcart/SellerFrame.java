@@ -3,13 +3,11 @@ package com.shoppingcart;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.Border;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Map;
@@ -22,6 +20,31 @@ public class SellerFrame
     {
         //initialize products arraylist
         Products = model.getProducts();
+
+        newProductPresent = false;
+        //see if there is new product
+        File tmpDir = new File("Serialized/newProduct.dat");
+        boolean exists = tmpDir.exists();
+
+        if(exists){
+
+            try { //try to deserialize
+
+                ObjectInputStream in = new ObjectInputStream(
+                        new FileInputStream("Serialized/newProduct.dat"));
+
+                newProduct = (Product) in.readObject();
+
+                in.close();
+
+                System.out.println("new product deserialized by seller frame");
+
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            newProductPresent = true;
+        }
+
 
         //setting up the frame
         sellerFrame = new JFrame();
@@ -48,13 +71,15 @@ public class SellerFrame
 
         JPanel inventoryTopPanel = new JPanel(new FlowLayout());
         addProduct = new JButton("Add Product");
+        addProduct.addActionListener(e->addProduct());
         inventoryTopPanel.add(addProduct);
         generalInventoryPanel.add(inventoryTopPanel, BorderLayout.NORTH);
 
         //set up inventory view panel (holds the squares that show inventory)
-        InventoryViewPanel = new JPanel(new GridLayout(2,2,20,20));
+        InventoryViewPanel = new JPanel(new GridLayout(3,2,20,20));
         setUpInventoryView();
         JScrollPane scrollInventoryPane = new JScrollPane(InventoryViewPanel);
+        scrollInventoryPane.getVerticalScrollBar().setUnitIncrement(10);
         generalInventoryPanel.add(scrollInventoryPane,BorderLayout.CENTER);
 
 
@@ -68,6 +93,7 @@ public class SellerFrame
         getPurchases();
 
         JScrollPane scrollPurchasePane = new JScrollPane(purchaseText);
+        scrollPurchasePane.getVerticalScrollBar().setUnitIncrement(10);
         generalPurchasePanel.add(scrollPurchasePane,BorderLayout.CENTER);
 
         JPanel purchaseTopPanel = new JPanel();
@@ -397,6 +423,80 @@ public class SellerFrame
 
         InventoryViewPanel.add(mediPanel);
 
+
+
+
+
+
+
+        //set up new product panel panel
+        if(newProductPresent) {
+            NPPanel = new JPanel();
+
+            NPPanel.setBackground(new Color(169, 169, 169));
+            NPPanel.setLayout(new BoxLayout(NPPanel, BoxLayout.Y_AXIS));
+            NPPanel.setSize(25, 25);
+
+            //spacer
+            NPPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+            //image setup
+            BufferedImage NPIcon = null;
+            try {
+                NPIcon = ImageIO.read(new File("Icons/newProductIcon.png"));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            assert NPIcon != null;
+            JLabel NPIconLabel = new JLabel(new ImageIcon(NPIcon));
+            NPIconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            NPPanel.add(NPIconLabel);
+
+            //set up name and quantity labels
+            NPName = new JLabel(newProduct.getName());
+            NPName.setFont(new Font("Century Gothic", Font.BOLD, 30));
+            NPName.setForeground(new Color(0, 255, 127));
+            NPName.setAlignmentX(Component.CENTER_ALIGNMENT);
+            NPPanel.add(NPName);
+
+            //spacer
+            NPPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+            NPQuantity = new JLabel("On Hand: " + newProduct.getQuantity());
+            NPQuantity.setAlignmentX(Component.CENTER_ALIGNMENT);
+            NPQuantity.setFont(new Font("Century Gothic", Font.PLAIN, 26));
+            NPQuantity.setForeground(Color.white);
+            NPPanel.add(NPQuantity);
+
+            //spacer
+            NPPanel.add(Box.createRigidArea(new Dimension(0, 45)));
+
+            //increment and decrement buttons
+            JPanel NPIncandDec = new JPanel(new FlowLayout());
+            NPIncandDec.setSize(10, 10);
+            NPIncandDec.setBackground(new Color(169, 169, 169));
+
+            incNPQuantity = new JButton("+");
+            incNPQuantity.setBackground(new Color(147, 219, 170));
+            incNPQuantity.setFocusable(false);
+            incNPQuantity.setAlignmentX(Component.CENTER_ALIGNMENT);
+            incNPQuantity.setFont(new Font("Century Gothic", Font.BOLD, 20));
+
+            decNPQuantity = new JButton("-");
+            decNPQuantity.setBackground(new Color(255, 114, 111));
+            decNPQuantity.setFocusable(false);
+            decNPQuantity.setAlignmentX(Component.CENTER_ALIGNMENT);
+            decNPQuantity.setFont(new Font("Century Gothic", Font.BOLD, 20));
+
+            NPIncandDec.add(incNPQuantity);
+            NPIncandDec.add(decNPQuantity);
+            incNPQuantity.addActionListener(this::updateInventory);
+            decNPQuantity.addActionListener(this::updateInventory);
+            NPPanel.add(NPIncandDec);
+
+            InventoryViewPanel.add(NPPanel);
+        }
     }
 
     void showInventoryPage(){
@@ -496,6 +596,24 @@ public class SellerFrame
             return;
         }
 
+        //new product buttons
+        if(evt.getSource() == incNPQuantity){
+            NPQuantity.setForeground(Color.WHITE);
+            newProduct.setQuantity(newProduct.getQuantity() + 1); //increment quantity
+            NPQuantity.setText("On Hand: " + newProduct.getQuantity());
+            return;
+        }
+        if(evt.getSource() == decNPQuantity){
+            if(newProduct.getQuantity() == 0){ //if the current quantity is 0
+                NPQuantity.setForeground(new Color(255, 114,111)); //set label to red
+                return; //exit, you cannot go lower
+            }else if(newProduct.getQuantity() == 1){
+                NPQuantity.setForeground(new Color(255, 114,111)); //set label to red
+            }
+
+            newProduct.setQuantity(newProduct.getQuantity() - 1); //decrement quantity
+            NPQuantity.setText("On Hand: " + newProduct.getQuantity());
+        }
 
 
 
@@ -514,6 +632,20 @@ public class SellerFrame
             out.close();
 
             System.out.println("products serialized by seller frame.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        //try to serialize new product
+        try {
+            ObjectOutputStream out = new ObjectOutputStream(
+                    new FileOutputStream("Serialized/newProduct.dat"));
+
+            out.writeObject(newProduct);
+
+            out.close();
+
+            System.out.println("new product serialized by seller frame.");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -567,6 +699,147 @@ public class SellerFrame
         generalPurchasePanel.repaint();
     }
 
+    void addProduct(){
+        newProductPanel = new JPanel();
+        newProductPanel.setLayout(null);
+        newProductPanel.setVisible(true);
+        switchPanel.add("Add Product Page", newProductPanel);
+
+        JLabel productName = new JLabel("Product Name: ");
+        productName.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        productName.setForeground(Color.BLACK);
+        productName.setBounds(20,20,productName.getPreferredSize().width, productName.getPreferredSize().height);
+        newProductPanel.add(productName);
+
+        int tempHeight = productName.getPreferredSize().height;
+
+        JLabel productID = new JLabel("Product ID: ");
+        productID.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        productID.setForeground(Color.BLACK);
+        productID.setBounds(20,40 + tempHeight,productID.getPreferredSize().width, productID.getPreferredSize().height);
+        newProductPanel.add(productID);
+
+        JLabel productType = new JLabel("Product Type: ");
+        productType.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        productType.setForeground(Color.BLACK);
+        productType.setBounds(20,60 + tempHeight*2,productType.getPreferredSize().width, productType.getPreferredSize().height);
+        newProductPanel.add(productType);
+
+        JLabel productBP = new JLabel("Product Base Price: ");
+        productBP.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        productBP.setForeground(Color.BLACK);
+        productBP.setBounds(20,80 + tempHeight*3,productBP.getPreferredSize().width, productBP.getPreferredSize().height);
+        newProductPanel.add(productBP);
+
+        JLabel productSP = new JLabel("Product Sell Price: ");
+        productSP.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        productSP.setForeground(Color.BLACK);
+        productSP.setBounds(20,100 + tempHeight*4,productSP.getPreferredSize().width, productSP.getPreferredSize().height);
+        newProductPanel.add(productSP);
+
+        JLabel productQuantity = new JLabel("Product Quantity: ");
+        productQuantity.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        productQuantity.setForeground(Color.BLACK);
+        productQuantity.setBounds(20,120 + tempHeight*5,productQuantity.getPreferredSize().width, productQuantity.getPreferredSize().height);
+        newProductPanel.add(productQuantity);
+
+        prodName = new JTextField(20);
+        prodName.setBounds(200,20,prodName.getPreferredSize().width, prodName.getPreferredSize().height);
+        prodName.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        prodName.setBackground(new Color(169,169,169));
+        newProductPanel.add(prodName);
+
+        prodID = new JTextField(20);
+        prodID.setBounds(200,40 + tempHeight,prodID.getPreferredSize().width, prodID.getPreferredSize().height);
+        prodID.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        prodID.setBackground(new Color(169,169,169));
+        newProductPanel.add(prodID);
+
+        prodTP = new JTextField(20);
+        prodTP.setBounds(200,60 + tempHeight*2,prodTP.getPreferredSize().width, prodTP.getPreferredSize().height);
+        prodTP.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        prodTP.setBackground(new Color(169,169,169));
+        newProductPanel.add(prodTP);
+
+        prodBP = new JTextField(20);
+        prodBP.setBounds(200,80 + tempHeight*3,prodBP.getPreferredSize().width, prodBP.getPreferredSize().height);
+        prodBP.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        prodBP.setBackground(new Color(169,169,169));
+        newProductPanel.add(prodBP);
+
+        prodSP = new JTextField(20);
+        prodSP.setBounds(200,100 + tempHeight*4,prodSP.getPreferredSize().width, prodSP.getPreferredSize().height);
+        prodSP.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        prodSP.setBackground(new Color(169,169,169));
+        newProductPanel.add(prodSP);
+
+        prodQuantity = new JTextField(20);
+        prodQuantity.setBounds(200,120 + tempHeight*5,prodQuantity.getPreferredSize().width, prodQuantity.getPreferredSize().height);
+        prodQuantity.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        prodQuantity.setBackground(new Color(169,169,169));
+        newProductPanel.add(prodQuantity);
+
+        submitAPButton = new JButton("Submit");
+        submitAPButton.addActionListener(e->checkAddProduct());
+        submitAPButton.setFocusable(false);
+        submitAPButton.setBounds(200,180 + tempHeight*6,submitAPButton.getPreferredSize().width + 50 , submitAPButton.getPreferredSize().height);
+        submitAPButton.setFont(new Font("Century Gothic", Font.PLAIN, 18));
+        submitAPButton.setBackground(new Color(169,169,169));
+        newProductPanel.add(submitAPButton);
+
+        addProductFields = new JTextField[]{prodName, prodID, prodTP, prodBP, prodSP, prodQuantity};
+
+
+        cardLayout.show(switchPanel, "Add Product Page");
+    }
+
+    void checkAddProduct(){
+        boolean valid = true;
+
+        for(JTextField n: addProductFields) {
+
+            if (n.getText().length() == 0) {
+                n.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+                valid = false; //not valid as something is empty
+            } else {
+                n.setBorder(new LineBorder(Color.BLACK, 0));
+            }
+        }
+        File tmpDir = new File("Serialized/newProduct.dat");
+        boolean exists = tmpDir.exists();
+
+        if(!valid){ //if not valid exit function
+            return;
+        }else if(exists){
+            submitAPButton.setBackground(new Color(255, 114,111));
+            System.out.println("New Product already exists");
+            return;
+        }
+
+        submitAPButton.setBackground(new Color(169,169,169));
+
+
+        //if valid and not already new product go ahead and create product
+        newProduct = new Product(prodName.getText(), prodID.getText(), prodTP.getText(),Double.parseDouble(prodBP.getText()),Double.parseDouble(prodSP.getText()),Integer.parseInt(prodQuantity.getText()),0);
+
+        //try to serialize new product
+        try {
+            ObjectOutputStream out = new ObjectOutputStream(
+                    new FileOutputStream("Serialized/newProduct.dat"));
+
+            out.writeObject(newProduct);
+
+            out.close();
+
+            System.out.println("new product serialized by seller frame.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        logOut();
+    }
+
     //variable declarations
     ArrayList<Product> Products;
     ArrayList<Purchase> purchaseList;
@@ -576,12 +849,16 @@ public class SellerFrame
     JPanel sellerTopPanel;
     JPanel InventoryViewPanel;
     JPanel generalPurchasePanel;
-    JPanel PurchaseViewPanel;
     JLabel profitLabel;
     JPanel profitPanel;
     JPanel purchaseBottomPanel;
     NumberFormat formatter = NumberFormat.getCurrencyInstance();
     JButton addProduct;
+    JPanel newProductPanel;
+    JButton submitAPButton;
+    Product newProduct;
+    JTextField prodName, prodID, prodTP, prodBP, prodSP, prodQuantity;
+    JTextField[] addProductFields;
 
     JTextPane purchaseText;
         JPanel handSanitizerPanel;
@@ -596,9 +873,13 @@ public class SellerFrame
         JPanel mediPanel;
             JLabel mediName, mediQuantity;
             JButton incMediQuantity, decMediQuantity;
+        JPanel NPPanel;
+            JLabel NPName, NPQuantity;
+            JButton incNPQuantity, decNPQuantity;
     JButton inventorySwitchButton;
     JButton metricsSwitchButton;
     JButton logoutButton;
     CardLayout cardLayout;
+    boolean newProductPresent;
 
 }
