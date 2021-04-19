@@ -662,13 +662,13 @@ public class SellerFrame
         PurchaseModel pmodel = new PurchaseModel();
         purchaseList = pmodel.getPurchases();
 
-        String text = "";
+        StringBuilder text = new StringBuilder();
         for(Purchase p: purchaseList){
-            text += p.toString() + "\n";
+            text.append(p.toString()).append("\n");
 
         }
 
-        purchaseText.setText(text);
+        purchaseText.setText(text.toString());
     }
 
     void viewProfit(){

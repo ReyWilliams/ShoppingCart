@@ -29,7 +29,7 @@ public class Purchase implements Serializable, Cloneable {
         for(Map.Entry<Product, Integer> n: items.entrySet()){
             total += n.getValue();
         }
-        return "Username: " + userName + "\t" +
+        return "Name: " + userName + "\t" +
                 "Purchase Total: " + formatter.format(purchaseTotal) + "\t" +
                 "Number of Items: " + total;
     }

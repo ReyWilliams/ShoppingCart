@@ -201,7 +201,7 @@ public class ProductFrame {
         productTopPanel.add(Box.createRigidArea(new Dimension(30, 0)));
 
 
-        productsTotalLabel = new JLabel("Total: " + formatter.format(0));
+        productsTotalLabel = new JLabel("Total: " + formatter.format(cartTotalVal));
         productsTotalLabel.setBorder(BorderFactory.createLineBorder(Color.black, 2));
         productsTotalLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         productsTotalLabel.setFont(new Font("Century Gothic", Font.BOLD, 18));
@@ -240,7 +240,7 @@ public class ProductFrame {
         generalCheckOutPanel.add(checkOutTopPanel, BorderLayout.NORTH);
 
         //checkout panel products
-        checkOutProductsViewPanel = new JPanel(new GridLayout(2,2,20,20));
+        checkOutProductsViewPanel = new JPanel(new GridLayout(3,2,20,20));
 
 
         //spacers
@@ -1202,7 +1202,10 @@ public class ProductFrame {
             return;
         }else if(userQuantity.get(4) == 0 && evt.getSource() == removeNP){
             return;
-        }else if(userQuantity.get(4) >= newProduct.getQuantity() && evt.getSource() == addNP){
+        }
+
+        if(newProductPresent)
+        if(userQuantity.get(4) >= newProduct.getQuantity() && evt.getSource() == addNP){
             return;
         }
 
@@ -1524,7 +1527,7 @@ public class ProductFrame {
 
         int i = 0;
         for(int val: userQuantity){
-                if(val == 4){continue;}
+            if(i == 4){continue;}
             if(val != 0){ //if user bought item
                 //update the quantity by how much they bought
                 System.out.println("\nBefore: " + Products.get(i).getQuantity());
