@@ -1,12 +1,18 @@
 package com.shoppingcart;
 
-
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+/**
+ * Class to handle the product model (product data)
+ */
 public class ProductModel {
 
+    /**
+     * default constructor which sets up products
+     * @author Reynaldo Williams
+     */
     public ProductModel(){
 
         File tmpDir = new File("Serialized/products.dat");

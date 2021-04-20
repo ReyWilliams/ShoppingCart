@@ -6,19 +6,20 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 
-
+/**
+ * Class that generates login frame
+ * @author Reynaldo Williams
+ */
 public class LoginFrame {
 
-    public LoginFrame(LoginData data){
+    /**
+     * default constructor that creates the login frame
+     */
+    public LoginFrame(){
 
-        //copy data object
-        this.data = data;
 
-        //get login data
-        loginMap = data.getLoginMap();
-
+        //create the frame, panel and text field arrays(for parsing)
         loginFrame = new JFrame();
         loginPanel = new JPanel();
         loginFields = new JTextField[2];
@@ -33,7 +34,7 @@ public class LoginFrame {
         loginPanel.setLayout(null);
 
 
-        //Welcome text
+        //Welcome text label
         JLabel welcomeLabel = new JLabel("Welcome");
         welcomeLabel.setFont(new Font("Century Gothic", Font.PLAIN, 50));
         welcomeLabel.setBounds(250, 75,300,70);
@@ -63,11 +64,12 @@ public class LoginFrame {
         sellerLabel.setFont(new Font("Century Gothic", Font.BOLD, 24));
         sellerLabel.setBounds(195,400,200,50);
 
+        //add components to the panel
         loginPanel.add(userNameLabel);
         loginPanel.add(passwordLabel);
         loginPanel.add(sellerLabel);
 
-        //creating and positioning our username and password textfields
+        //creating and positioning our username and password text fields
         userNameField = new JTextField(15);
         userNameField.setBounds(300, 210,170,40);
         userNameField.setFont(new Font("Century Gothic", Font.PLAIN, 20));
@@ -78,6 +80,7 @@ public class LoginFrame {
         passWordField.setFont(new Font("Century Gothic", Font.PLAIN, 20));
         loginFields[1] = userNameField;
 
+        //adding those fields to the panel
         loginPanel.add(userNameField);
         loginPanel.add(passWordField);
 
@@ -112,6 +115,7 @@ public class LoginFrame {
 
     }
 
+    //local variables
     JTextField[] loginFields;
     JButton[] loginButtons;
     JTextField userNameField;
@@ -121,7 +125,5 @@ public class LoginFrame {
     JPanel loginPanel;
     JCheckBox sellerCheckBox;
     JLabel feedbackLabel;
-    HashMap<String, HashMap<String, Boolean>> loginMap;
-    LoginData data;
 
 }

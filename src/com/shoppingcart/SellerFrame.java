@@ -2,7 +2,6 @@ package com.shoppingcart;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -12,10 +11,18 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Map;
 
+/**
+ * class that sets up seller frame
+ * @author Katie Dao
+ */
 public class SellerFrame 
 {
 
-
+    /**
+     * function to set up seller frame
+     * @param userName name of seller
+     * @param model product model (contains all products)
+     */
     public SellerFrame(String userName, ProductModel model)
     {
         //initialize products arraylist
@@ -125,6 +132,9 @@ public class SellerFrame
 
     }
 
+    /**
+     * function to get up top panel of seller frame
+     */
     void setUpTopPanel(){
         sellerTopPanel = new JPanel(new FlowLayout());
 
@@ -153,6 +163,9 @@ public class SellerFrame
 
     }
 
+    /**
+     * functin to set up inventory view of the seller frame
+     */
     void setUpInventoryView(){
 
         //set up the hand sanitizer panel
@@ -499,11 +512,17 @@ public class SellerFrame
         }
     }
 
+    /**
+     * function to switch to the inventory page
+     */
     void showInventoryPage(){
         sellerFrame.setSize(587,775);
         cardLayout.show(switchPanel, "Inventory Page");
     }
 
+    /**
+     * function to switch to(show) the purchase page
+     */
     void showPurchasePage(){
         if(purchaseBottomPanel != null && purchaseBottomPanel.getComponentCount() != 0){
             sellerFrame.setSize(587,855);
@@ -514,6 +533,10 @@ public class SellerFrame
         cardLayout.show(switchPanel, "Purchase Page");
     }
 
+    /**
+     * function to update inventory
+     * @param evt action event
+     */
     void updateInventory(ActionEvent evt){
 
         //hand sanitizer buttons
@@ -619,6 +642,9 @@ public class SellerFrame
 
     }
 
+    /**
+     * logs user/seller out and serialized what needs to serialed
+     */
     void logOut(){
         sellerFrame.dispose();
 
@@ -651,11 +677,14 @@ public class SellerFrame
         }
 
         LoginData data = new LoginData();
-        LoginFrame frame = new LoginFrame(data);
+        LoginFrame frame = new LoginFrame();
         LoginController controller = new LoginController(data, frame);
 
     }
 
+    /**
+     * fetches purchases
+     */
     void getPurchases(){
         purchaseText = new JTextPane();
         purchaseText.setFont(new Font("Century Gothic", Font.BOLD, 12));
@@ -671,6 +700,9 @@ public class SellerFrame
         purchaseText.setText(text.toString());
     }
 
+    /**
+     * displays profit
+     */
     void viewProfit(){
 
         profitLabel.setFont(new Font("Century Gothic", Font.BOLD, 20));
@@ -699,6 +731,9 @@ public class SellerFrame
         generalPurchasePanel.repaint();
     }
 
+    /**
+     * handles adding a product to the program
+     */
     void addProduct(){
         newProductPanel = new JPanel();
         newProductPanel.setLayout(null);
@@ -793,6 +828,9 @@ public class SellerFrame
         cardLayout.show(switchPanel, "Add Product Page");
     }
 
+    /**
+     * checks the new product to be added
+     */
     void checkAddProduct(){
         boolean valid = true;
 

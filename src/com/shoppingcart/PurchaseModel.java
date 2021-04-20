@@ -3,7 +3,16 @@ package com.shoppingcart;
 import java.io.*;
 import java.util.ArrayList;
 
+/**
+ * class that handles purchase model
+ * @author Katie Dao
+ */
+
 public class PurchaseModel {
+
+    /**
+     * constructor that reads in purchases
+     */
     public PurchaseModel(){
 
         File tmpDir = new File("Serialized/purchases.dat");
@@ -61,6 +70,6 @@ public class PurchaseModel {
         return clone;
     }
 
-
+    //local variables
     ArrayList<Purchase> Purchases;
 }

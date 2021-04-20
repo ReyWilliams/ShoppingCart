@@ -5,8 +5,15 @@ import java.io.FileReader;
 import java.util.HashMap;
 import java.util.Scanner;
 
+/**
+ * Class that handles login data (user/pass)
+ * @author Katie Dao
+ */
 public class LoginData {
 
+    /**
+     * Default constructor called when class is created
+     */
     public LoginData(){
 
         //create login hashmap
@@ -32,14 +39,17 @@ public class LoginData {
             loginMap.put(values[0],temp);
         }
 
-//        System.out.println(loginMap);
-
     }
 
+    /**
+     * function to return instance of the loginMap, does not clone
+     * @return hashmap that has loginmap
+     */
     HashMap<String, HashMap<String, Boolean>> getLoginMap(){
         return loginMap;
     }
 
+    //local vairables
     HashMap<String, HashMap<String, Boolean>> loginMap;
     Scanner in;
 }

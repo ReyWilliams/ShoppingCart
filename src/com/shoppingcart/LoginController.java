@@ -8,18 +8,29 @@ import java.util.Map;
 
 public class LoginController {
 
+    /**
+     * Controll that handles the events on login frame
+     * @param data login data that will be tested against input data
+     * @param frame the frame that holds everything that is happening
+     * @author Reynaldo Williams
+     */
     public LoginController(LoginData data, LoginFrame frame){
-        this.frame = frame;
+        this.frame = frame; //grab frame and data
         this.data = data;
 
+        //attach listeners to buttons on login frame
         this.frame.loginButton.addActionListener(new LoginListener());
         this.frame.userNameField.addActionListener(new LoginListener());
         this.frame.passWordField.addActionListener(new LoginListener());
 
     }
 
+    //Action listeners that handles events
     class LoginListener implements ActionListener{
-
+        /**
+         * Everytime an action is performed function is called
+         * @param e the action event
+         */
         @Override
         public void actionPerformed(ActionEvent e) {
 
@@ -33,29 +44,37 @@ public class LoginController {
 
                 //if that is the correct password
                 HashMap<String,Boolean> map = data.loginMap.get(userName);
-                Map.Entry<String,Boolean> entry = map.entrySet().iterator().next();
-                String password = entry.getKey();
-                boolean isSeller = entry.getValue();
 
+                //grab the accompanying hashmap
+                Map.Entry<String,Boolean> entry = map.entrySet().iterator().next();
+                String password = entry.getKey(); //get password
+                boolean isSeller = entry.getValue(); //get seller value (T/F)
+
+                //if the password matches
                 if(password.equals(passWord)){
+
+                    //set feedback label to green (success)
                     frame.feedbackLabel.setForeground(Color.GREEN);
                     frame.feedbackLabel.setText("Login successful!");
 
+                    //if the seller checkbox was selected
                     if(frame.sellerCheckBox.isSelected()){
 
+                        //check is they are seller
                         if(isSeller) {
-                            frame.loginFrame.dispose();
+                            frame.loginFrame.dispose(); //get rid of login frame and create new seller frame
                             ProductModel model = new ProductModel();
                             SellerFrame sellerFrame = new SellerFrame(userName, model);
-                        }else{
+                        }else{ //if they are not seller, show feedback
                             frame.feedbackLabel.setForeground(Color.RED);
                             frame.feedbackLabel.setText("User not seller!");
                         }
-                    }else{
+                    }else{ //if seller checkbox was not clicked
 
+                        //dispose login frame and login them in to product frame
                         frame.loginFrame.dispose();
-                        ProductModel model = new ProductModel();
-                        PurchaseModel pmodel = new PurchaseModel();
+                        ProductModel model = new ProductModel(); //generate product model
+                        PurchaseModel pmodel = new PurchaseModel(); //generate new purchase model
                         ProductFrame productFrame = new ProductFrame(model, userName, pmodel);
                     }
                 }else{ //if that is not the correct password
@@ -70,6 +89,7 @@ public class LoginController {
         }
     }
 
+    //local viariables
     String userName, passWord;
     LoginFrame frame;
     LoginData data;

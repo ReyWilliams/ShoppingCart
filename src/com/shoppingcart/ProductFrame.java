@@ -14,9 +14,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-
+/**
+ * class that handles the product frame
+ * @author Reynaldo Williams, Katie Dao
+ */
 public class ProductFrame {
 
+    /**
+     * general constructor to make new instance of the product frame
+     * @param model the product model
+     * @param userName the username of the person who is logged in
+     * @param pmodel the purchase model
+     */
     public ProductFrame(ProductModel model, String userName, PurchaseModel pmodel){
 
         //get username
@@ -45,10 +54,11 @@ public class ProductFrame {
 
 
 
-        //deserialize objects
+        // check if user file exists
         File tmpDir = new File("Serialized/User(" + userName + ").dat");
         boolean exists = tmpDir.exists();
 
+        //new product clone is null
         NPClone = null;
 
         if(exists) { //user has file
@@ -78,7 +88,7 @@ public class ProductFrame {
         }
 
 
-
+        // check if purchases exist
         tmpDir = new File("Serialized/purchases.dat");
         exists = tmpDir.exists();
 
@@ -100,6 +110,8 @@ public class ProductFrame {
             purchaseList = pmodel.getPurchases();
         }
 
+
+        //check if new product new exists
         tmpDir = new File("Serialized/newProduct.dat");
         exists = tmpDir.exists();
 
@@ -115,16 +127,19 @@ public class ProductFrame {
 
                 System.out.println("new product deserialized by product frame.");
 
+                //if it does exist set new product present to true
                 newProductPresent = true;
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
 
 
-        }else{
+        }else{ //if it doesnt exist set new product present to false
             newProductPresent = false;
         }
 
+
+        //check again if user has file
         tmpDir = new File("Serialized/User(" + userName + ").dat");
         exists = tmpDir.exists();
 
@@ -139,22 +154,25 @@ public class ProductFrame {
             }
         }
 
-        if(exists){ //if there was previously a serialized user file, perform an update to the quantities to make sure everything is synched
+        //if there was previously a serialized user file,
+        //perform an update to the quantities to make sure everything is synced
+        if(exists){
             quantityCheck();
         }
 
         //setup product frame w/ parameters
         productFrame = new JFrame();
-
         productFrame.setSize(587,775);
         productFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         productFrame.setLayout(new BorderLayout(20,20));
         productFrame.setTitle("Welcome, " + userName);
 
+        //set up switch panel
         switchPanel = new JPanel();
-        cardLayout = new CardLayout();
-        switchPanel.setLayout(cardLayout);
+        cardLayout = new CardLayout(); //create new card layout
+        switchPanel.setLayout(cardLayout); //set the layout of switch panel to card layout
 
+        //setup general product panel as border layout with gaps between
         generalProductsPanel = new JPanel(new BorderLayout(50,50));
 
         //setup top panel which will hold the buttons users will use to switch between views and logout
@@ -191,6 +209,8 @@ public class ProductFrame {
 
 
         //add text saying user's name as top
+        //also set up the top panel to add it to so its positioned well
+        //after adding welcome label we will add total label so users can see the total number of items bought
         JPanel productTopPanel = new JPanel(new FlowLayout());
         JLabel welcomeUser = new JLabel("Welcome " + userName +"!");
         welcomeUser.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -274,7 +294,9 @@ public class ProductFrame {
         productFrame.setVisible(true);
     }
 
-
+    /**
+     * shows the purchase page
+     */
     void showPurchasePage(){
 
         //update purchase total text.
@@ -297,6 +319,10 @@ public class ProductFrame {
 
     }
 
+    /**
+     * sets up the products view panel
+     * @param productsViewPanel the products view panel
+     */
     void setUpProductsView(JPanel productsViewPanel){
 
         //set up the hand sanitizer panel
@@ -573,6 +599,10 @@ public class ProductFrame {
         }
     }
 
+    /**
+     * populates the products view panel
+     * @param checkOutProductsViewPanel the panel that will be populated with products
+     */
     void setUpCheckOutProductsView(JPanel checkOutProductsViewPanel){
 
         //set up the hand sanitizer CO panel
@@ -970,6 +1000,9 @@ public class ProductFrame {
         }
     }
 
+    /**
+     * creates the purchase panel and populates it
+     */
     void setUpPurchasePanel(){
         generalPurchasePanel = new JPanel();
         generalPurchasePanel.setLayout(null);
@@ -1069,6 +1102,10 @@ public class ProductFrame {
         generalPurchasePanel.add(submitButton);
     }
 
+    /**
+     * shows purchase screen
+     * @param evt action event
+     */
     void showPurchase(ActionEvent evt){
 
 
@@ -1084,7 +1121,6 @@ public class ProductFrame {
                 handSanitizerName.setForeground(new Color(255, 11, 127));
             }
 
-//            handSanitizerPanelCO.setVisible(true);
 
             if(userQuantity.get(0) == 0){
                 checkOutProductsViewPanel.add(handSanitizerPanelCO);
@@ -1105,7 +1141,6 @@ public class ProductFrame {
                 maskName.setForeground(new Color(255, 11, 127));
             }
 
-//            maskPanelCO.setVisible(true);
             if(userQuantity.get(1) == 0){
                 checkOutProductsViewPanel.add(maskPanelCO);
             }
@@ -1125,7 +1160,6 @@ public class ProductFrame {
                 toothPasteName.setForeground(new Color(255, 11, 127));
             }
 
-//            toothPastePanelCO.setVisible(true);
             if(userQuantity.get(2) == 0){
                 checkOutProductsViewPanel.add(toothPastePanelCO);
             }
@@ -1182,6 +1216,10 @@ public class ProductFrame {
         updateTotal();
     }
 
+    /**
+     * updates the cart on button press (+/-)
+     * @param evt action event
+     */
     void updateCart(ActionEvent evt){
 
         if(userQuantity.get(0) == 0 && evt.getSource() == removeHandSanitizerCO){
@@ -1357,6 +1395,9 @@ public class ProductFrame {
         updateTotal();
     }
 
+    /**
+     * updates the total given changes
+     */
     void updateTotal(){
 
         cartTotalLabel.setForeground(Color.black);
@@ -1377,18 +1418,27 @@ public class ProductFrame {
         productsTotalLabel.setText("Total: " + formatter.format(cartTotalVal));
     }
 
+    /**
+     * function to show the products page
+     */
     void showProductsPage(){
         productFrame.setSize(587,775);
         cardLayout.show(switchPanel, productsPage);
         isOnProductsPage = true;
     }
 
+    /**
+     * function to show the checkout page
+     */
     void showCheckOutPage(){
         productFrame.setSize(587,775);
         cardLayout.show(switchPanel, checkOutPage);
         isOnProductsPage = false;
     }
 
+    /**
+     * check the submission of a purchase (user info)
+     */
     void checkPurchaseSubmission(){
         boolean valid = true;
         //check for empty fields
@@ -1442,7 +1492,10 @@ public class ProductFrame {
             timer.start();
         }
 
-
+    /**
+     * allows user to log out
+     * @param actionEvent action event
+     */
     void logOut(ActionEvent actionEvent){
         productFrame.dispose();
 
@@ -1515,14 +1568,15 @@ public class ProductFrame {
 
 
         LoginData data = new LoginData();
-        LoginFrame frame = new LoginFrame(data);
+        LoginFrame frame = new LoginFrame();
         LoginController controller = new LoginController(data, frame);
     }
 
 
-
-
-    //function to make sure everything syncs after purchase
+    /**
+     * function to make sure everything syncs after purchase
+     * @param actionEvent action event
+     */
     void finalizeTransaction(ActionEvent actionEvent){
 
         int i = 0;
@@ -1549,6 +1603,9 @@ public class ProductFrame {
 
     }
 
+    /**
+     * checks quantities to make sure if updated everything matches
+     */
     void quantityCheck(){
         int i = 0;
         for(int val: userQuantity){
@@ -1576,7 +1633,9 @@ public class ProductFrame {
     }
 
 
-
+    /**
+     * local variables
+     */
     ArrayList<Product> Products, ProductsClone;
     NumberFormat formatter = NumberFormat.getCurrencyInstance();
     java.applet.AudioClip clip;
